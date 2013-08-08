@@ -1,6 +1,9 @@
 <!doctype html>
 <html>
   <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/static/bootstrap/css/bootstrap.min.css" rel="stylesheet" media="screen">
     <title>NekoSamaDuce</title>
     <style>
       .logo {
@@ -17,12 +20,49 @@
     </style>
   </head>
   <body>
-    <pre class="logo">
+    <div class="container">
+      <!-- navbar -->
+      <div class="row">
+        <div class="navbar">
+          <a class="navbar-brand" href="#">NekoSamaDuce!</a>
+          <ul class="nav navbar-nav">
+            <li>
+              <a href="#">
+                Team Doc
+              </a>
+            </li>
+          </ul>
+          <p class="navbar-text pull-right">
+            <a href="/jenkins/jobs/icfpc2013/">
+              <img src="http://nekosama.coders.jp/jenkins/job/icfpc2013/badge/icon">
+            </a>
+          </p>
+        </div>
+      </div>
+
+      <!-- content -->
+
+      <div class="logo" style="white-space: pre; font-family: monospace">
     _   __     __        _____                       ____                
    / | / /__  / /______ / ___/____ _____ ___  ____ _/ __ \__  __________ 
   /  |/ / _ \/ //_/ __ \\__ \/ __ `/ __ `__ \/ __ `/ / / / / / / ___/ _ \
  / /|  /  __/ ,&lt; / /_/ /__/ / /_/ / / / / / / /_/ / /_/ / /_/ / /__/  __/
 /_/ |_/\___/_/|_|\____/____/\__,_/_/ /_/ /_/\__,_/_____/\__,_/\___/\___/ 
-    </pre>
+      </div>
+
+      <h1>監視対象</h1>
+      <div class="row">
+        <iframe class="col-lg-6" src="http://icfpc2013.cloudapp.net/" height="320">
+        </iframe>
+        <div class="col-lg-6">
+          <a class="twitter-timeline" height="320" data-dnt="true" href="https://twitter.com/ICFPContest2013" data-widget-id="365471666186366976">Tweets by @ICFPContest2013</a>
+          <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+"://platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
+        </div>
+      </div>
+
+      <!-- start footer scripts -->
+      <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+      <script src="/static/bootstrap/js/bootstrap.min.js"></script>
+    </div>
   </body>
 </html>

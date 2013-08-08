@@ -22,6 +22,12 @@ def IndexHandler():
   return Render('index.html')
 
 
+@bottle.get(r'/static/<path:path>')
+def static_handler(path):
+  return bottle.static_file(
+      path, root=os.path.join(os.path.dirname(__file__), os.pardir, 'static'))
+
+
 application = bottle.default_app()
 
 if __name__ == '__main__':
