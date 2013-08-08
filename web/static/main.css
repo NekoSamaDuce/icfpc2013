@@ -1,0 +1,19 @@
+html {
+  overflow-x: hidden;
+}
+
+#logo {
+  white-space: pre;
+  font-family: Courier New, monospace;
+
+  -webkit-animation-name: slidein, fade;
+  -webkit-animation-duration: 3s;
+  -webkit-transform-origin: 40ex 0;
+}
+
+@-webkit-keyframes slidein {
+  0% {margin-left: 100%}
+  33% {margin-left: 100%}
+  80% {margin-left: 0%; -webkit-transform: rotateY(0)}
+  100% {margin-left: 0%; -webkit-transform: rotateY(360deg)}
+}
