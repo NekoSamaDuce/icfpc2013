@@ -7,15 +7,6 @@ std::ostream& output_as_program(std::ostream& os, Tree t)
 	return os << "(lambda (x) " << t << ")";
 }
 
-std::ostream& output_as_guess(std::ostream& os, const std::string& problem_id, Tree t)
-{
-	return output_as_program(os
-		<< "{"
-		<< "\"id\": \"" << problem_id << "\", "
-		<< "\"program\": \"",
-		t) << "\"}";
-}
-
 // TODO(kinaba): be careful. it doesn't record ops.
 std::map<std::tuple<int,bool,bool>, std::vector<Tree>> memo;
 
@@ -48,9 +39,9 @@ std::vector<Tree> generate_all(const std::set<NodeType>& ops, int size, bool in_
 			};
 		} else {
 			return {
+				make_tree(NODE_X),
 				make_tree(NODE_0),
 				make_tree(NODE_1),
-				make_tree(NODE_X),
 			};
 		}
 	}
@@ -107,6 +98,15 @@ std::vector<Tree> filter(const std::set<NodeType>& op, std::vector<Tree> t)
 	return t;
 }
 
+std::vector<Tree> reorder(std::vector<Tree> t)
+{
+	std::sort(t.begin(), t.end(), [&](Tree lhs, Tree rhs) {
+		return lhs->has_variable() > rhs->has_variable();
+	});
+	return t;
+}
+
+
 void classify_output(const std::vector<Tree>& all)
 {
 	std::mt19937 rand_engine;
@@ -142,31 +142,32 @@ void classify_output(const std::vector<Tree>& all)
 
 }
 
-DEFINE_string(id, "__ID__", "ID for the current problem.");
-DEFINE_int32(size, 2, "Size of the program.");
+DEFINE_int32(size, 6, "Size of the program.");
+DEFINE_string(operators, "plus,not", "Comma separated list of operators.");
 DEFINE_bool(classify, false, "Enable classifier");
 
 int main(int argc, char* argv[])
 {
 	google::ParseCommandLineFlags(&argc, &argv, true);
 
-	std::string id = FLAGS_id;
 	int size = FLAGS_size;
 	std::set<NodeType> ops;
 	bool has_tfold = false;
-	for(int i=1; i<argc; ++i) {
-		if(argv[i] == std::string("tfold")) {
-			has_tfold = true;
-			ops.emplace(NODE_FOLD);
-		}
-		else
-			ops.emplace(node_type_from_string(argv[i]));
+	{
+		std::string param = FLAGS_operators;
+		for(auto& c : param) if(c==',') c=' ';
+		std::stringstream ss(param);
+		for(std::string op; ss>>op; )
+			if(op == std::string("tfold")) {
+				has_tfold = true;
+				ops.emplace(NODE_FOLD);
+			}
+			else {
+				ops.emplace(node_type_from_string(op));
+			}
 	}
 
-	auto all = filter(ops, generate_all(ops, size-1, false, has_tfold));
-
-//	for(auto& t : all)
-//		output_as_guess(std::cout, id, t) << std::endl;
+	auto all = reorder(filter(ops, generate_all(ops, size-1, false, has_tfold)));
 
 	if(FLAGS_classify)
 		classify_output(all);

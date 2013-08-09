@@ -160,7 +160,37 @@ public:
 		return result;
 	}
 
-	uint64_t eval(uint64_t x, uint64_t e=0, uint64_t a=0)
+	bool has_variable() const
+	{
+		switch(type())
+		{
+		case NODE_X:
+			return true;
+		case NODE_0:
+		case NODE_1:
+			return false;
+		case NODE_E:
+		case NODE_A:
+			return false; //!
+		case NODE_NOT:
+		case NODE_SHL1:
+		case NODE_SHR1:
+		case NODE_SHR4:
+		case NODE_SHR16:
+			return child(0)->has_variable();
+		case NODE_AND:
+		case NODE_OR:
+		case NODE_XOR:
+		case NODE_PLUS:
+			return child(0)->has_variable() || child(1)->has_variable();
+		case NODE_IF0:
+		case NODE_FOLD:
+			return child(0)->has_variable() || child(1)->has_variable() || child(2)->has_variable();
+		}
+		NOTREACHED();
+	}
+
+	uint64_t eval(uint64_t x, uint64_t e=0, uint64_t a=0) const
 	{
 		switch(type())
 		{
