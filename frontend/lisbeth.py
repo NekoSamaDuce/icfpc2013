@@ -27,7 +27,7 @@ gflags.DEFINE_string(
 gflags.MarkFlagAsRequired('genall_solver')
 
 
-def BruteForceGuess(problem, programs):
+def BruteForceGuessOrDie(problem, programs):
   for program in programs:
     logging.info('=== %s', program)
     try:
@@ -40,12 +40,11 @@ def BruteForceGuess(problem, programs):
                    u'SOLVED!'
                    u' .\uff61.:*\uff65\u309c\uff9f\uff65*:')
       logging.info('')
-      break
-  else:
-    logging.error('************************************')
-    logging.error('NO PROGRAM WAS ACCEPTED. DEAD END...')
-    logging.error('************************************')
-    sys.exit(1)
+      return
+  logging.error('************************************')
+  logging.error('NO PROGRAM WAS ACCEPTED. DEAD END...')
+  logging.error('************************************')
+  sys.exit(1)
 
 
 def main():
@@ -55,17 +54,20 @@ def main():
   # Solver existence checks
   assert os.path.exists(FLAGS.genall_solver)
 
-  problem = frontend_util.GetProblemByFlags()
+  problems = frontend_util.GetProblemByFlags()
 
-  solver_output = subprocess.check_output(
-      [FLAGS.genall_solver,
-       '--size=%d' % problem.size,
-       '--operators=%s' % ','.join(problem.operators)])
-  programs = solver_output.splitlines()
+  for problem in problems:
+    logging.info('******** NEXT PROBLEM: %r ********', problem)
 
-  logging.info('Candidate programs: %d', len(programs))
+    solver_output = subprocess.check_output(
+        [FLAGS.genall_solver,
+         '--size=%d' % problem.size,
+         '--operators=%s' % ','.join(problem.operators)])
+    programs = solver_output.splitlines()
 
-  BruteForceGuess(problem, programs)
+    logging.info('Candidate programs: %d', len(programs))
+
+    BruteForceGuess(problem, programs)
 
 
 if __name__ == '__main__':

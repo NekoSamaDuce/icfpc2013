@@ -21,6 +21,9 @@ gflags.DEFINE_integer(
 gflags.DEFINE_string(
     'operators', None,
     'The training problem operators to generate.')
+gflags.DEFINE_integer(
+    'train_count', None,
+    'The number of training problems.')
 
 # Flags for --mode=serious
 gflags.DEFINE_string(
@@ -34,17 +37,20 @@ gflags.DEFINE_string(
     '--problemset_file.')
 
 
-def GetProblemByFlags():
+def GetProblemsByFlags():
   if FLAGS.mode == 'train':
     logging.info('Requesting a training problem...')
-    problem = api.Train(FLAGS.size, FLAGS.operators)
+    problems = [api.Train(FLAGS.size, FLAGS.operators)
+                for _ in xrange(FLAGS.train_count)]
   elif FLAGS.mode == 'oneoff':
     assert FLAGS.problem_id is not None
     assert FLAGS.size is not None
     assert FLAGS.operators is not None
-    problem = api.Problem(FLAGS.problem_id, FLAGS.size, FLAGS.operators.split(','))
+    problems = [api.Problem(FLAGS.problem_id, FLAGS.size,
+                            FLAGS.operators.split(','))]
   else:  # FLAGS.mode == 'serious'
     assert FLAGS.problem_id, '--problem_id must be specified'
+    problemset = {}
     with open(FLAGS.problemset_file) as f:
       for line in f:
         if line.startswith('#'):
@@ -53,12 +59,11 @@ def GetProblemByFlags():
         size = int(size)
         operators = operators.split(',')
         problem = api.Problem(id, size, operators)
-        if problem.id == FLAGS.problem_id:
-          break
-      else:
-        raise AssertionError('No problem with ID=%s found' % FLAGS.problem_id)
-  logging.info('Problem loaded.')
-  logging.info('ID: %s', problem.id)
-  logging.info('Size: %d', problem.size)
-  logging.info('Operators: %s', ', '.join(problem.operators))
-  return problem
+        problemset[problem.id] = problem
+    problems = [problemset[problem_id]
+                for problem_id in FLAGS.problem_id.split(',')]
+  logging.info('%d Problems loaded.', len(problems))
+  for i, problem in enumerate(problems):
+    logging.info('%d. %s size=%d operators=%s',
+                 i+1, problem.id, problem.size, ','.join(problem.operators))
+  return problems

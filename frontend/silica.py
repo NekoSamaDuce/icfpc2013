@@ -61,7 +61,7 @@ def RunClusterSolver(problem):
   return (arguments, clusters)
 
 
-def BruteForceGuess(problem, programs):
+def BruteForceGuessOrDie(problem, programs):
   while programs:
     program = programs.pop(0)
     logging.info('=== [%d] %s', len(programs) + 1, program)
@@ -113,31 +113,34 @@ def main():
   assert os.path.exists(FLAGS.cluster_solver)
   assert os.path.exists(FLAGS.batch_evaluate_solver)
 
-  problem = frontend_util.GetProblemByFlags()
+  problems = frontend_util.GetProblemsByFlags()
 
-  arguments, clusters = RunClusterSolver(problem)
+  for problem in problems:
+    logging.info('******** NEXT PROBLEM: %r ********', problem)
 
-  cluster_sizes_decreasing = sorted(
-      [len(programs) for _, programs in clusters], reverse=True)
-  logging.info('Candidate programs: %d', sum(cluster_sizes_decreasing))
-  logging.info('Candidate clusters: %d', len(clusters))
-  logging.info('Cluster sizes: %s', ', '.join(map(str, cluster_sizes_decreasing)))
+    arguments, clusters = RunClusterSolver(problem)
 
-  if FLAGS.max_cluster_size > 0 and cluster_sizes_decreasing[0] > FLAGS.max_cluster_size:
-    logging.error('Maximum cluster size was above threshold (%d)', FLAGS.max_cluster_size)
-    logging.error('Stop.')
-    sys.exit(1)
+    cluster_sizes_decreasing = sorted(
+        [len(programs) for _, programs in clusters], reverse=True)
+    logging.info('Candidate programs: %d', sum(cluster_sizes_decreasing))
+    logging.info('Candidate clusters: %d', len(clusters))
+    logging.info('Cluster sizes: %s', ', '.join(map(str, cluster_sizes_decreasing)))
 
-  logging.info('Issueing /eval...')
-  outputs = api.Eval(problem.id, arguments)
+    if FLAGS.max_cluster_size > 0 and cluster_sizes_decreasing[0] > FLAGS.max_cluster_size:
+      logging.error('Maximum cluster size was above threshold (%d)', FLAGS.max_cluster_size)
+      logging.error('Stop.')
+      sys.exit(1)
 
-  clusters_map = dict([(tuple(e), c) for e, c in clusters])
-  programs = clusters_map.get(tuple(outputs), [])
+    logging.info('Issueing /eval...')
+    outputs = api.Eval(problem.id, arguments)
 
-  #logging.info('%r -> %r', arguments, outputs)
-  logging.info('Selected a cluster with population=%d', len(programs))
+    clusters_map = dict([(tuple(e), c) for e, c in clusters])
+    programs = clusters_map.get(tuple(outputs), [])
 
-  BruteForceGuess(problem, programs)
+    #logging.info('%r -> %r', arguments, outputs)
+    logging.info('Selected a cluster with population=%d', len(programs))
+
+    BruteForceGuessOrDie(problem, programs)
 
 
 if __name__ == '__main__':
