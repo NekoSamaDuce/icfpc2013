@@ -5,5 +5,6 @@ setup(
     version='0',
     packages=['sandbox'],
     install_requires=[
+        'python-gflags',
         'requests',
         ])
