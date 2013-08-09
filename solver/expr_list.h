@@ -9,7 +9,7 @@ namespace icfpc {
 
 class KeyExpr : public Expr {
  public:
-  KeyExpr(std::size_t depth) : Expr(depth, false, false, 0) {
+  KeyExpr(std::size_t depth) : Expr(static_cast<OpType>(-1), 0, depth, false, false) {
   }
 
  protected:

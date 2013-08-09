@@ -27,6 +27,11 @@ enum OpType {
   IF0 = 1 << 9,
   FOLD = 1 << 10,
   TFOLD = 1 << 11,
+
+  // Virtual type.
+  LAMBDA = 1 << 12,
+  CONSTANT = 1 << 13,
+  ID = 1 << 14,
 };
 
 struct Env {
@@ -50,6 +55,11 @@ class Expr {
   std::size_t depth() const { return depth_; }
   bool in_fold() const { return in_fold_; }
   bool has_fold() const { return has_fold_; }
+
+  // Returns the OpType of this expression. Maybe virtual type (e.g. CONSTANT or ID).
+  OpType op_type() const { return op_type_; }
+
+  // Returns the set of OpType, including the ones for subtrees.
   int op_type_set() const { return op_type_set_; }
 
   uint64_t Eval(const Env& env) const {
@@ -59,15 +69,19 @@ class Expr {
  protected:
   friend std::ostream& operator<<(std::ostream&, const Expr&);
 
-  Expr(std::size_t depth, bool in_fold, bool has_fold, int op_type_set)
-      : depth_(depth), in_fold_(in_fold), has_fold_(has_fold), op_type_set_(op_type_set) {}
+  Expr(OpType op_type, int op_type_set, std::size_t depth,
+       bool in_fold, bool has_fold)
+      : op_type_(op_type), op_type_set_(op_type_set), depth_(depth),
+        in_fold_(in_fold), has_fold_(has_fold) {}
   virtual void Output(std::ostream* os) const = 0;
   virtual uint64_t EvalImpl(const Env& env) const = 0;
+
+  OpType op_type_;
+  int op_type_set_;
 
   std::size_t depth_;
   bool in_fold_;
   bool has_fold_;
-  int op_type_set_;
 
   DISALLOW_COPY_AND_ASSIGN(Expr);
 };
@@ -82,7 +96,9 @@ std::ostream& operator<<(std::ostream& os, const Expr& e) {
 class LambdaExpr : public Expr {
  public:
   LambdaExpr(std::shared_ptr<Expr> body)
-      : Expr(1 + body->depth(), body->in_fold(), body->has_fold(), body->op_type_set()), body_(body) {
+      : Expr(OpType::LAMBDA, body->op_type_set(), 1 + body->depth(),
+             body->in_fold(), body->has_fold()),
+        body_(body) {
   }
 
   static std::shared_ptr<LambdaExpr> Create(std::shared_ptr<Expr> body) {
@@ -104,29 +120,28 @@ class LambdaExpr : public Expr {
 
 class ConstantExpr : public Expr {
  public:
-  enum class Value {
-    ZERO = 0,
-    ONE = 1,
-  };
-  explicit ConstantExpr(Value value) : Expr(1, false, false, 0), value_(value) {}
+  explicit ConstantExpr(uint64_t value)
+      : Expr(OpType::CONSTANT, 0, 1, false, false), value_(value) {}
 
-  static std::shared_ptr<ConstantExpr> Create(Value value) {
-    return value == Value::ZERO ? CreateZero() : CreateOne();
+  static std::shared_ptr<ConstantExpr> Create(uint64_t value) {
+    if (value == 0) return CreateZero();
+    if (value == 1) return CreateOne();
+    return std::make_shared<ConstantExpr>(value);
   }
 
   static std::shared_ptr<ConstantExpr> CreateZero() {
-    static std::shared_ptr<ConstantExpr> instance(new ConstantExpr(Value::ZERO));
+    static std::shared_ptr<ConstantExpr> instance(new ConstantExpr(0));
     return instance;
   }
 
   static std::shared_ptr<ConstantExpr> CreateOne() {
-    static std::shared_ptr<ConstantExpr> instance(new ConstantExpr(Value::ONE));
+    static std::shared_ptr<ConstantExpr> instance(new ConstantExpr(1));
     return instance;
   }
 
  protected:
   virtual void Output(std::ostream* os) const {
-    *os << (value_ == Value::ZERO ? "0" : "1");
+    *os << value_;
   }
 
   virtual uint64_t EvalImpl(const Env& env) const {
@@ -134,14 +149,15 @@ class ConstantExpr : public Expr {
   }
 
  private:
-  Value value_;
+  uint64_t value_;
 };
 
 class IdExpr : public Expr {
  public:
   enum Name { X, Y, Z, };
 
-  explicit IdExpr(Name name) : Expr(1, name != Name::X, false, 0) ,name_(name) {
+  explicit IdExpr(Name name) :
+      Expr(OpType::ID, 0, 1, name != Name::X, false), name_(name) {
   }
 
   static std::shared_ptr<IdExpr> Create(Name name) {
@@ -195,10 +211,11 @@ class If0Expr : public Expr {
   If0Expr(std::shared_ptr<Expr> cond,
           std::shared_ptr<Expr> then_body,
           std::shared_ptr<Expr> else_body)
-      : Expr(1 + cond->depth() + then_body->depth() + else_body->depth(),
+      : Expr(OpType::IF0,
+             OpType::IF0 | cond->op_type_set() | then_body->op_type_set() | else_body->op_type_set(),
+             1 + cond->depth() + then_body->depth() + else_body->depth(),
              cond->in_fold() | then_body->in_fold() | else_body->in_fold(),
-             cond->has_fold() | then_body->has_fold() | else_body->has_fold(),
-             OpType::IF0 | cond->op_type_set() | then_body->op_type_set() | else_body->op_type_set()),
+             cond->has_fold() | then_body->has_fold() | else_body->has_fold()),
         cond_(cond), then_body_(then_body), else_body_(else_body) {
   }
 
@@ -234,14 +251,16 @@ class FoldExpr : public Expr {
   FoldExpr(std::shared_ptr<Expr> value,
            std::shared_ptr<Expr> init_value,
            std::shared_ptr<Expr> body)
-      : Expr(2 + value->depth() + init_value->depth() + body->depth(), false, true,
-             OpType::FOLD | value->op_type_set() | init_value->op_type_set() | body->op_type_set()),
+      : Expr(OpType::FOLD,
+             OpType::FOLD | value->op_type_set() | init_value->op_type_set() | body->op_type_set(),
+             2 + value->depth() + init_value->depth() + body->depth(), false, true),
         value_(value), init_value_(init_value), body_(body) {
   }
 
   explicit FoldExpr(std::shared_ptr<Expr> body)
-      : Expr(2 + 1 + 1 + body->depth(), false, true,
-             OpType::TFOLD | body->op_type_set()),
+      : Expr(OpType::FOLD,  // Use FOLD. not TFOLD.
+             OpType::TFOLD | body->op_type_set(),
+             2 + 1 + 1 + body->depth(), false, true),
         value_(IdExpr::CreateX()), init_value_(ConstantExpr::CreateZero()), body_(body) {
   }
 
@@ -287,7 +306,8 @@ class UnaryOpExpr : public Expr {
   };
 
   UnaryOpExpr(Type type, std::shared_ptr<Expr> arg)
-      : Expr(1 + arg->depth(), arg->in_fold(), arg->has_fold(), ToOpType(type) | arg->op_type_set()),
+      : Expr(ToOpType(type), ToOpType(type) | arg->op_type_set(),
+             1 + arg->depth(), arg->in_fold(), arg->has_fold()),
         type_(type), arg_(arg) {
   }
 
@@ -323,7 +343,7 @@ class UnaryOpExpr : public Expr {
   }
 
  private:
-  static int ToOpType(Type type) {
+  static OpType ToOpType(Type type) {
     switch (type) {
       case Type::NOT: return OpType::NOT;
       case Type::SHL1: return OpType::SHL1;
@@ -332,7 +352,7 @@ class UnaryOpExpr : public Expr {
       case Type::SHR16: return OpType::SHR16;
       default: NOTREACHED();
     }
-    return 0;
+    return static_cast<OpType>(-1);
   }
   Type type_;
   std::shared_ptr<Expr> arg_;
@@ -345,10 +365,10 @@ class BinaryOpExpr : public Expr {
   };
 
   BinaryOpExpr(Type type, std::shared_ptr<Expr> arg1, std::shared_ptr<Expr> arg2)
-      : Expr(1 + arg1->depth() + arg2->depth(),
+      : Expr(ToOpType(type), ToOpType(type) | arg1->op_type_set() | arg2->op_type_set(),
+             1 + arg1->depth() + arg2->depth(),
              arg1->in_fold() | arg2->in_fold(),
-             arg1->has_fold() | arg2->has_fold(),
-             ToOpType(type) | arg1->op_type_set() | arg2->op_type_set()),
+             arg1->has_fold() | arg2->has_fold()),
         type_(type), arg1_(arg1), arg2_(arg2) {
   }
 
@@ -384,7 +404,7 @@ class BinaryOpExpr : public Expr {
   }
 
  private:
-  static int ToOpType(Type type) {
+  static OpType ToOpType(Type type) {
     switch(type) {
       case Type::AND: return OpType::AND;
       case Type::OR: return OpType::OR;
@@ -392,7 +412,7 @@ class BinaryOpExpr : public Expr {
       case Type::PLUS: return OpType::PLUS;
       default: NOTREACHED();
     }
-    return 0;
+    return static_cast<OpType>(-1);
   }
 
   Type type_;
