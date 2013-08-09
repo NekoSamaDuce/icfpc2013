@@ -1,11 +1,12 @@
 """Lisbeth: Solver frontend v1.
 
 Example:
-./python.sh -m frontend.lisbeth --genall_solver=solver/genall --mode=train --size=3 --operators=
-./python.sh -m frontend.lisbeth --genall_solver=solver/genall --mode=serious --problemset_file=data/train_small.tsv --problem_id=xop6dUzEtUBAprA0DGVwcAvB
+./python.sh -m frontend.lisbeth --mode=train --size=3 --operators=
+./python.sh -m frontend.lisbeth --mode=serious --problemset_file=data/train_small.tsv --problem_id=xop6dUzEtUBAprA0DGVwcAvB
 """
 
 import logging
+import os
 import subprocess
 import sys
 import time
@@ -18,8 +19,10 @@ from util import stdlog
 
 FLAGS = gflags.FLAGS
 
+SOLVER_DIR = os.path.join(os.path.dirname(__file__), '../solver')
+
 gflags.DEFINE_string(
-    'genall_solver', None,
+    'genall_solver', os.path.join(SOLVER_DIR, 'genall'),
     'Path to genall solver binary.')
 gflags.MarkFlagAsRequired('genall_solver')
 
@@ -27,6 +30,9 @@ gflags.MarkFlagAsRequired('genall_solver')
 def main():
   sys.argv = FLAGS(sys.argv)
   stdlog.setup()
+
+  # Solver existence checks
+  assert os.path.exists(FLAGS.genall_solver)
 
   problem = frontend_util.GetProblemByFlags()
 
