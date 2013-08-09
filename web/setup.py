@@ -7,4 +7,5 @@ setup(
     install_requires=[
         'bottle',
         'jinja2',
+        'requests',
         ])
