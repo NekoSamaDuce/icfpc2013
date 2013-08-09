@@ -7,3 +7,6 @@
 *.rej
 *.swp
 .DS_Store
+
+icfpc2013.egg-info/
+stage/
