@@ -78,6 +78,9 @@ def WithRetry(func, *args, **kwargs):
       logging.warning('Rate limited. retry(%d)' % trial)
       if trial > 0:
         time.sleep(1)
+    except requests.exceptions.RequestException:
+      logging.exception('Connection error! retry(%d)' % trial)
+      time.sleep(3)
 
 
 def GenericRequest(endpoint, request=None):
