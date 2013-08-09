@@ -7,7 +7,8 @@ stage_dir="$root_dir/stage"
 
 if [[ ! -d "$stage_dir" ]]; then
   virtualenv "$stage_dir"
-  "$stage_dir/bin/pip" install -e "$root_dir"
 fi
+
+"$stage_dir/bin/pip" install -e "$root_dir" > /dev/null
 
 exec "$stage_dir/bin/python" "$@"
