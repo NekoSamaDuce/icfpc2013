@@ -34,7 +34,7 @@ gflags.MarkFlagAsRequired('cluster_solver')
 gflags.DEFINE_integer(
     'max_cluster_size', None,
     'Maximum size of a cluster allowed to proceed before starting to solve '
-    'a problem.')
+    'a problem. Specify 0 for no threshold.')
 gflags.MarkFlagAsRequired('max_cluster_size')
 
 
@@ -95,7 +95,7 @@ def main():
   logging.info('Candidate clusters: %d', len(clusters))
   logging.info('Cluster sizes: %s', ', '.join(map(str, cluster_sizes_decreasing)))
 
-  if cluster_sizes_decreasing[0] > FLAGS.max_cluster_size:
+  if FLAGS.max_cluster_size > 0 and cluster_sizes_decreasing[0] > FLAGS.max_cluster_size:
     logging.error('Maximum cluster size was above threshold (%d)', FLAGS.max_cluster_size)
     logging.error('Stop.')
     sys.exit(1)
