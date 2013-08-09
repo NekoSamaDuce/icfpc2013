@@ -104,6 +104,13 @@ std::shared_ptr<Expr> SimplifyShr4(const std::shared_ptr<UnaryOpExpr>& expr) {
     return ConstantExpr::Create(static_cast<const ConstantExpr&>(*arg).value() >> 4);
   }
 
+  if (arg->op_type() == OpType::SHR1) {
+    std::shared_ptr<UnaryOpExpr> arg_expr = std::static_pointer_cast<UnaryOpExpr>(arg);
+    return UnaryOpExpr::Create(
+        UnaryOpExpr::Type::SHR1,
+        SimplifyShr4(UnaryOpExpr::Create(UnaryOpExpr::Type::SHR4, arg_expr->arg())));
+  }
+
   if (arg.get() == expr->arg().get()) {
     return expr;
   }
@@ -115,6 +122,20 @@ std::shared_ptr<Expr> SimplifyShr16(const std::shared_ptr<UnaryOpExpr>& expr) {
   std::shared_ptr<Expr> arg = Simplify(expr->arg());
   if (arg->op_type() == OpType::CONSTANT) {
     return ConstantExpr::Create(static_cast<const ConstantExpr&>(*arg).value() >> 16);
+  }
+
+  if (arg->op_type() == OpType::SHR1) {
+    std::shared_ptr<UnaryOpExpr> arg_expr = std::static_pointer_cast<UnaryOpExpr>(arg);
+    return UnaryOpExpr::Create(
+        UnaryOpExpr::Type::SHR1,
+        SimplifyShr16(UnaryOpExpr::Create(UnaryOpExpr::Type::SHR16, arg_expr->arg())));
+  }
+
+  if (arg->op_type() == OpType::SHR4) {
+    std::shared_ptr<UnaryOpExpr> arg_expr = std::static_pointer_cast<UnaryOpExpr>(arg);
+    return UnaryOpExpr::Create(
+        UnaryOpExpr::Type::SHR4,
+        SimplifyShr16(UnaryOpExpr::Create(UnaryOpExpr::Type::SHR16, arg_expr->arg())));
   }
 
   if (arg.get() == expr->arg().get()) {
@@ -166,7 +187,12 @@ std::shared_ptr<Expr> SimplifyAnd(const std::shared_ptr<BinaryOpExpr>& expr) {
     return arg1;
   }
 
-  if (arg1->CompareTo(*arg2) > 0) {
+  int cmp = arg1->CompareTo(*arg2);
+  if (cmp == 0) {
+    return arg1;
+  }
+
+  if (cmp > 0) {
     arg1.swap(arg2);
   }
 
@@ -220,7 +246,11 @@ std::shared_ptr<Expr> SimplifyOr(const std::shared_ptr<BinaryOpExpr>& expr) {
     return arg1;
   }
 
-  if (arg1->CompareTo(*arg2) > 0) {
+
+  int cmp = arg1->CompareTo(*arg2);
+  if (cmp == 0)
+    return arg1;
+  if (cmp > 0) {
     arg1.swap(arg2);
   }
 
