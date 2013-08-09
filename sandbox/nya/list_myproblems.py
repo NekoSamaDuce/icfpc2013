@@ -1,4 +1,4 @@
-import api
+from util import api
 
 
 def main():

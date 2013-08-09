@@ -3,7 +3,7 @@ import time
 
 import gflags
 
-import api
+from util import api
 
 FLAGS = gflags.FLAGS
 
