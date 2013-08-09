@@ -7,24 +7,9 @@
 
 namespace icfpc {
 
-enum OpType {
-  NOT = 1 << 0,
-  SHL1 = 1 << 1,
-  SHR1 = 1 << 2,
-  SHR4 = 1 << 3,
-  SHR16 = 1 << 4,
-  AND = 1 << 5,
-  OR = 1 << 6,
-  XOR = 1 << 7,
-  PLUS = 1 << 8,
-  IF0 = 1 << 9,
-  FOLD = 1 << 10,
-  TFOLD = 1 << 11,
-};
-
 class KeyExpr : public Expr {
  public:
-  KeyExpr(std::size_t depth) : Expr(depth, false, false) {
+  KeyExpr(std::size_t depth) : Expr(depth, false, false, 0) {
   }
 
  protected:
@@ -37,7 +22,8 @@ struct DepthComp {
   }
 };
 
-std::vector<std::shared_ptr<Expr> > ListExprInternal(std::size_t depth, int op_type_set) {
+std::vector<std::shared_ptr<Expr> > ListExprInternal(
+    std::size_t depth, bool is_initial, int op_type_set) {
   if (depth == 1) {
     std::vector<std::shared_ptr<Expr> > result;
     result.push_back(ConstantExpr::CreateZero());
@@ -50,7 +36,7 @@ std::vector<std::shared_ptr<Expr> > ListExprInternal(std::size_t depth, int op_t
     return result;
   }
 
-  std::vector<std::shared_ptr<Expr> > result_list = ListExprInternal(depth - 1, op_type_set);
+  std::vector<std::shared_ptr<Expr> > result_list = ListExprInternal(depth - 1, false, op_type_set);
   std::vector<std::shared_ptr<Expr> > new_list;
 
   // Unary.
@@ -121,7 +107,8 @@ std::vector<std::shared_ptr<Expr> > ListExprInternal(std::size_t depth, int op_t
     }
   }
 
-  if (depth >= 5 && (op_type_set & (OpType::FOLD | OpType::TFOLD))) {  // TODO handle TFOLD.
+  // TODO do not create TFold expression here.
+  if (depth >= 5 && (op_type_set & OpType::FOLD)) {
     for (size_t i = 1; i < depth - 3; ++i) {
       auto value_range = std::equal_range(
           result_list.begin(), result_list.end(),
@@ -137,6 +124,14 @@ std::vector<std::shared_ptr<Expr> > ListExprInternal(std::size_t depth, int op_t
           if ((*vit)->has_fold() || (*vit)->in_fold()) continue;
           for (auto iit = init_value_range.first; iit != init_value_range.second; ++iit) {
             if ((*iit)->has_fold() || (*iit)->in_fold()) continue;
+
+            if (is_initial &&
+                (*vit) == IdExpr::CreateX() &&
+                (*iit) == ConstantExpr::CreateZero()) {
+              // Do not create TFOLD.
+              continue;
+            }
+
             for (auto bit = body_range.first; bit != body_range.second; ++bit) {
               if ((*bit)->has_fold()) continue;
               new_list.push_back(FoldExpr::Create(*vit, *iit, *bit));
@@ -147,17 +142,28 @@ std::vector<std::shared_ptr<Expr> > ListExprInternal(std::size_t depth, int op_t
     }
   }
 
+  if (is_initial && depth >= 5 && (op_type_set & OpType::TFOLD)) {
+    auto body_range = std::equal_range(
+        result_list.begin(), result_list.end(),
+        std::make_shared<KeyExpr>(depth - 4), DepthComp());
+    for (auto bit = body_range.first; bit != body_range.second; ++bit) {
+      if ((*bit)->has_fold()) continue;
+      new_list.push_back(FoldExpr::CreateTFold(*bit));
+    }
+  }
+
   result_list.insert(result_list.end(), new_list.begin(), new_list.end());
   return result_list;
 }
 
 std::vector<std::shared_ptr<Expr> > ListExpr(std::size_t depth, int op_type_set) {
-  std::vector<std::shared_ptr<Expr> > child_list = ListExprInternal(depth - 1, op_type_set);
+  std::vector<std::shared_ptr<Expr> > child_list =
+      ListExprInternal(depth - 1, true, op_type_set);
   auto range = std::equal_range(
       child_list.begin(), child_list.end(), std::make_shared<KeyExpr>(depth - 1), DepthComp());
   std::vector<std::shared_ptr<Expr> > result;
   while (range.first != range.second) {
-    if (!(*range.first)->in_fold())
+    if (!(*range.first)->in_fold() && (*range.first)->op_type() == op_type_set)
       result.push_back(LambdaExpr::Create(*range.first));
     ++range.first;
   }
