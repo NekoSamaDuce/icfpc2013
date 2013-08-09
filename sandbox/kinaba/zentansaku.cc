@@ -1,4 +1,5 @@
 #include "util.h"
+#include <gflags/gflags.h>
 
 enum NodeType
 {
@@ -351,14 +352,18 @@ void classify_output(const std::vector<Tree>& all)
 
 }
 
+DEFINE_string(id, "__ID__", "ID for the current problem.");
+DEFINE_int32(size, 2, "Size of the program.");
 
-int main(int argc, const char* argv[])
+int main(int argc, char* argv[])
 {
-	std::string id = argv[1];
-	int size = atoi(argv[2]);
+	google::ParseCommandLineFlags(&argc, &argv, true);
+
+	std::string id = FLAGS_id;
+	int size = FLAGS_size;
 	std::set<NodeType> ops;
 	bool has_tfold = false;
-	for(int i=3; i<argc; ++i) {
+	for(int i=1; i<argc; ++i) {
 		if(argv[i] == std::string("tfold")) {
 			has_tfold = true;
 			ops.emplace(NODE_FOLD);
