@@ -1,0 +1,50 @@
+[nya@alicia icfpc2013]% ./python.sh -m util.gentrain --size=5 --operators=
+PQivYVEmgmZIrZfuvimwbDJa        5       shl1,shr4       (lambda (x_4056) (shr4 (shl1 (shl1 x_4056))))
+[nya@alicia icfpc2013]% sandbox/kinaba/zentansaku --size=5 shl1 shr4 > a
+===== 18 candidates generated =====
+[nya@alicia icfpc2013]% cat a
+(lambda (x) (shl1 (shl1 (shr4 0))))
+(lambda (x) (shl1 (shl1 (shr4 1))))
+(lambda (x) (shl1 (shl1 (shr4 x))))
+(lambda (x) (shl1 (shr4 (shl1 0))))
+(lambda (x) (shl1 (shr4 (shl1 1))))
+(lambda (x) (shl1 (shr4 (shl1 x))))
+(lambda (x) (shl1 (shr4 (shr4 0))))
+(lambda (x) (shl1 (shr4 (shr4 1))))
+(lambda (x) (shl1 (shr4 (shr4 x))))
+(lambda (x) (shr4 (shl1 (shl1 0))))
+(lambda (x) (shr4 (shl1 (shl1 1))))
+(lambda (x) (shr4 (shl1 (shl1 x))))
+(lambda (x) (shr4 (shl1 (shr4 0))))
+(lambda (x) (shr4 (shl1 (shr4 1))))
+(lambda (x) (shr4 (shl1 (shr4 x))))
+(lambda (x) (shr4 (shr4 (shl1 0))))
+(lambda (x) (shr4 (shr4 (shl1 1))))
+(lambda (x) (shr4 (shr4 (shl1 x))))
+[nya@alicia icfpc2013]% ./python.sh -m util.simple_guess --id=PQivYVEmgmZIrZfuvimwbDJa --guess_file=a
+=== (lambda (x) (shl1 (shl1 (shr4 0))))
+rejected. argument=0x3ffffffffffffffc, expected=0x0fffffffffffffff, actual=0x0000000000000000
+=== (lambda (x) (shl1 (shl1 (shr4 1))))
+rejected. argument=0x3ffffffffffffffc, expected=0x0fffffffffffffff, actual=0x0000000000000000
+=== (lambda (x) (shl1 (shl1 (shr4 x))))
+rejected. argument=0x4000000000000000, expected=0x0000000000000000, actual=0x1000000000000000
+=== (lambda (x) (shl1 (shr4 (shl1 0))))
+rejected. argument=0x3ffffffffffffffc, expected=0x0fffffffffffffff, actual=0x0000000000000000
+=== (lambda (x) (shl1 (shr4 (shl1 1))))
+rejected. argument=0x3ffffffffffffffc, expected=0x0fffffffffffffff, actual=0x0000000000000000
+=== (lambda (x) (shl1 (shr4 (shl1 x))))
+... rate limited ...
+rejected. argument=0x4000000000000000, expected=0x0000000000000000, actual=0x1000000000000000
+=== (lambda (x) (shl1 (shr4 (shr4 0))))
+rejected. argument=0x3ffffffffffffffc, expected=0x0fffffffffffffff, actual=0x0000000000000000
+=== (lambda (x) (shl1 (shr4 (shr4 1))))
+rejected. argument=0x3ffffffffffffffc, expected=0x0fffffffffffffff, actual=0x0000000000000000
+=== (lambda (x) (shl1 (shr4 (shr4 x))))
+rejected. argument=0x2000000000000000, expected=0x0800000000000000, actual=0x0040000000000000
+=== (lambda (x) (shr4 (shl1 (shl1 0))))
+rejected. argument=0x3ffffffffffffffc, expected=0x0fffffffffffffff, actual=0x0000000000000000
+=== (lambda (x) (shr4 (shl1 (shl1 1))))
+... rate limited ...
+rejected. argument=0x3ffffffffffffffc, expected=0x0fffffffffffffff, actual=0x0000000000000000
+=== (lambda (x) (shr4 (shl1 (shl1 x))))
+!!! SOLVED !!!
