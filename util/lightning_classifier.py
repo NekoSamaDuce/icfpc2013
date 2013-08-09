@@ -91,6 +91,8 @@ def ReadProblemset():
   problems = []
   with open(FLAGS.problemset_file) as f:
     for line in f:
+      if line.startswith('#'):
+        continue
       id, size, operators = line.rstrip('\n').split('\t')[:3]
       size = int(size)
       operators = operators.split(',')
