@@ -2,7 +2,7 @@
 
 Example:
 ./python.sh -m frontend.lisbeth --genall_solver=solver/genall --mode=train --size=3 --operators=
-
+./python.sh -m frontend.lisbeth --genall_solver=solver/genall --mode=serious --problemset_file=data/train_small.tsv --problem_id=xop6dUzEtUBAprA0DGVwcAvB
 """
 
 import logging
