@@ -1,8 +1,8 @@
 """Silica: Solver frontend v2.
 
 Example:
-./python.sh -m frontend.silica --mode=train --size=3 --operators= --max_cluster_size=20
-./python.sh -m frontend.silica --mode=serious --problemset_file=data/train_small.tsv --problem_id=xop6dUzEtUBAprA0DGVwcAvB --max_cluster_size=20
+./python.sh -m frontend.silica --mode=train --size=3 --operators= --max_cluster_size=20 --counterexample_filter=false
+./python.sh -m frontend.silica --mode=serious --problemset_file=data/train_small.tsv --problem_id=xop6dUzEtUBAprA0DGVwcAvB --max_cluster_size=20 --counterexample_filter=false
 """
 
 import logging
@@ -26,16 +26,21 @@ gflags.DEFINE_string(
     'Path to cluster solver binary.')
 gflags.MarkFlagAsRequired('cluster_solver')
 
-# gflags.DEFINE_string(
-#     'batch_evaluate_solver', os.path.join(SOLVER_DIR, 'batch_evaluate'),
-#     'Path to batch evaluate solver binary.')
-# gflags.MarkFlagAsRequired('batch_evaluate_solver')
+gflags.DEFINE_string(
+    'batch_evaluate_solver', os.path.join(SOLVER_DIR, 'batch_evaluate'),
+    'Path to batch evaluate solver binary.')
+gflags.MarkFlagAsRequired('batch_evaluate_solver')
 
 gflags.DEFINE_integer(
     'max_cluster_size', None,
     'Maximum size of a cluster allowed to proceed before starting to solve '
     'a problem. Specify 0 for no threshold.')
 gflags.MarkFlagAsRequired('max_cluster_size')
+
+gflags.DEFINE_boolean(
+    'counterexample_filter', None,
+    'Call batch_evaluate to filter candidates with counterexamples.')
+gflags.MarkFlagAsRequired('counterexample_filter')
 
 
 def RunClusterSolver(problem):
@@ -57,24 +62,47 @@ def RunClusterSolver(problem):
 
 
 def BruteForceGuess(problem, programs):
-  for program in programs:
-    logging.info('=== %s', program)
+  while programs:
+    program = programs.pop(0)
+    logging.info('=== [%d] %s', len(programs) + 1, program)
     try:
       example = api.Guess(problem.id, program)
-      logging.info('rejected. argument=0x%016x, expected=0x%016x, actual=0x%016x',
-                   example.argument, example.expected, example.actual)
     except api.Solved:
       logging.info('')
       logging.info(u'*\u30fb\u309c\uff9f\uff65*:.\uff61. '
                    u'SOLVED!'
                    u' .\uff61.:*\uff65\u309c\uff9f\uff65*:')
       logging.info('')
-      break
-  else:
-    logging.error('************************************')
-    logging.error('NO PROGRAM WAS ACCEPTED. DEAD END...')
-    logging.error('************************************')
-    sys.exit(1)
+      return
+    logging.info('rejected. argument=0x%016x, expected=0x%016x, actual=0x%016x',
+                 example.argument, example.expected, example.actual)
+    if FLAGS.counterexample_filter:
+      programs = FilterProgramsWithCounterExample(programs, example)
+  logging.error('************************************')
+  logging.error('NO PROGRAM WAS ACCEPTED. DEAD END...')
+  logging.error('************************************')
+  sys.exit(1)
+
+
+def FilterProgramsWithCounterExample(programs, example):
+  if not programs:
+    return []
+  logging.info('calling batch_evaluate to filter candidates.')
+  p = subprocess.Popen(
+      [FLAGS.batch_evaluate_solver,
+       '--argument=%d' % example.argument],
+      stdin=subprocess.PIPE,
+      stdout=subprocess.PIPE)
+  evaluate_output = p.communicate('\n'.join(programs))[0]
+  if p.returncode != 0:
+    logging.error('batch_evaluate failed. Continuing without filter anyway...')
+    return programs
+  new_programs = []
+  for program, output in zip(programs, evaluate_output.splitlines()):
+    output = int(output, 0)
+    if output == example.expected:
+      new_programs.append(program)
+  return new_programs
 
 
 def main():
@@ -83,7 +111,7 @@ def main():
 
   # Solver existence checks
   assert os.path.exists(FLAGS.cluster_solver)
-  # assert os.path.exists(FLAGS.batch_evaluate_solver)
+  assert os.path.exists(FLAGS.batch_evaluate_solver)
 
   problem = frontend_util.GetProblemByFlags()
 
