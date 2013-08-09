@@ -66,6 +66,11 @@ class Expr {
     return EvalImpl(env);
   }
 
+  bool EqualTo(const Expr& other) const {
+    if (op_type() != other.op_type()) return false;
+    return EqualToImpl(other);
+  }
+
  protected:
   friend std::ostream& operator<<(std::ostream&, const Expr&);
 
@@ -75,6 +80,7 @@ class Expr {
         in_fold_(in_fold), has_fold_(has_fold) {}
   virtual void Output(std::ostream* os) const = 0;
   virtual uint64_t EvalImpl(const Env& env) const = 0;
+  virtual bool EqualToImpl(const Expr& other) const = 0;
 
   OpType op_type_;
   int op_type_set_;
@@ -105,6 +111,8 @@ class LambdaExpr : public Expr {
     return std::make_shared<LambdaExpr>(body);
   }
 
+  const std::shared_ptr<Expr>& body() const { return body_; }
+
  protected:
   virtual void Output(std::ostream* os) const {
     *os << "(lambda (x) " << *body_ << ")";
@@ -112,6 +120,10 @@ class LambdaExpr : public Expr {
 
   virtual uint64_t EvalImpl(const Env& env) const {
     return body_->Eval(env);
+  }
+
+  virtual bool EqualToImpl(const Expr& expr) const {
+    return body_->EqualTo(*static_cast<const LambdaExpr&>(expr).body_);
   }
 
  private:
@@ -139,6 +151,8 @@ class ConstantExpr : public Expr {
     return instance;
   }
 
+  uint64_t value() const { return value_; }
+
  protected:
   virtual void Output(std::ostream* os) const {
     *os << value_;
@@ -146,6 +160,10 @@ class ConstantExpr : public Expr {
 
   virtual uint64_t EvalImpl(const Env& env) const {
     return static_cast<uint64_t>(value_);
+  }
+
+  virtual bool EqualToImpl(const Expr& other) const {
+    return value_ == static_cast<const ConstantExpr&>(other).value_;
   }
 
  private:
@@ -184,6 +202,8 @@ class IdExpr : public Expr {
     return instance;
   }
 
+  Name name() const { return name_; }
+
  protected:
   virtual void Output(std::ostream* os) const {
     switch (name_) {
@@ -200,6 +220,10 @@ class IdExpr : public Expr {
       case Name::Z: return env.z;
     }
     return 0;
+  }
+
+  virtual bool EqualToImpl(const Expr& other) const {
+    return name_ == static_cast<const IdExpr&>(other).name_;
   }
 
  private:
@@ -225,6 +249,10 @@ class If0Expr : public Expr {
     return std::make_shared<If0Expr>(cond, then_body, else_body);
   }
 
+  const std::shared_ptr<Expr>& cond() const { return cond_; }
+  const std::shared_ptr<Expr>& then_body() const { return then_body_; }
+  const std::shared_ptr<Expr>& else_body() const { return else_body_; }
+
  protected:
   virtual void Output(std::ostream* os) const {
     *os << "(if0 " << *cond_ << " " << *then_body_ << " " << *else_body_ << ")";
@@ -237,6 +265,13 @@ class If0Expr : public Expr {
     } else {
       return else_body_->Eval(env);
     }
+  }
+
+  virtual bool EqualToImpl(const Expr& other) const {
+    const If0Expr& expr = static_cast<const If0Expr&>(other);
+    return cond_->EqualTo(*expr.cond_)
+        && then_body_->EqualTo(*expr.then_body_)
+        && else_body_->EqualTo(*expr.else_body_);
   }
 
  private:
@@ -274,6 +309,10 @@ class FoldExpr : public Expr {
     return std::make_shared<FoldExpr>(body);
   }
 
+  const std::shared_ptr<Expr>& value() const { return value_; }
+  const std::shared_ptr<Expr>& init_value() const { return init_value_; }
+  const std::shared_ptr<Expr>& body() const { return body_; }
+
  protected:
   virtual void Output(std::ostream* os) const {
     *os << "(fold " << *value_ << " " << *init_value_
@@ -291,6 +330,13 @@ class FoldExpr : public Expr {
       acc = body_->Eval(env2);
     }
     return acc;
+  }
+
+  virtual bool EqualToImpl(const Expr& other) const {
+    const FoldExpr& expr = static_cast<const FoldExpr&>(other);
+    return value_->EqualTo(*expr.value_)
+        && init_value_->EqualTo(*expr.init_value_)
+        && body_->EqualTo(*expr.body_);
   }
 
  private:
@@ -314,6 +360,9 @@ class UnaryOpExpr : public Expr {
   static std::shared_ptr<UnaryOpExpr> Create(Type type, std::shared_ptr<Expr> arg) {
     return std::make_shared<UnaryOpExpr>(type, arg);
   }
+
+  Type type() const { return type_; }
+  const std::shared_ptr<Expr>& arg() const { return arg_; }
 
  protected:
   virtual void Output(std::ostream* os) const {
@@ -340,6 +389,11 @@ class UnaryOpExpr : public Expr {
       default: NOTREACHED();
     }
     return 0;
+  }
+
+  virtual bool EqualToImpl(const Expr& other) const {
+    const UnaryOpExpr& expr = static_cast<const UnaryOpExpr&>(other);
+    return type_ == expr.type_ && arg_->EqualTo(*expr.arg_);
   }
 
  private:
@@ -377,6 +431,10 @@ class BinaryOpExpr : public Expr {
     return std::make_shared<BinaryOpExpr>(type, arg1, arg2);
   }
 
+  Type type() const { return type_; }
+  const std::shared_ptr<Expr>& arg1() const { return arg1_; }
+  const std::shared_ptr<Expr>& arg2() const { return arg2_; }
+
  protected:
   virtual void Output(std::ostream* os) const {
     *os << "(";
@@ -401,6 +459,11 @@ class BinaryOpExpr : public Expr {
       default: NOTREACHED();
     }
     return 0;
+  }
+
+  virtual bool EqualToImpl(const Expr& other) const {
+    const BinaryOpExpr& expr = static_cast<const BinaryOpExpr&>(other);
+    return type_ == expr.type_ && arg1_->EqualTo(*expr.arg1_) && arg2_->EqualTo(*expr.arg2_);
   }
 
  private:

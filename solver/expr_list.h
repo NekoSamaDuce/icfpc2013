@@ -15,6 +15,7 @@ class KeyExpr : public Expr {
  protected:
   virtual void Output(std::ostream*) const {}
   virtual uint64_t EvalImpl(const Env& e) const { return 0; }
+  virtual bool EqualToImpl(const Expr& e) const { return false; }
 };
 
 struct DepthComp {
