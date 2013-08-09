@@ -253,7 +253,7 @@ class UnaryOpExpr : public Expr {
       case Type::SHL1: *os << "shl1"; break;
       case Type::SHR1: *os << "shr1"; break;
       case Type::SHR4: *os << "shr4"; break;
-      case Type::SHR16: *os << "shrt16"; break;
+      case Type::SHR16: *os << "shr16"; break;
     }
     *os << " " << *arg_ << ")";
   }
