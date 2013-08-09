@@ -29,7 +29,8 @@ def main():
           break
         except api.RateLimited:
           print '... rate limited ...'
-          time.sleep(1)
+          if trial > 0:
+            time.sleep(1)
         except api.Solved:
           print '!!! SOLVED !!!'
           sys.exit(0)
