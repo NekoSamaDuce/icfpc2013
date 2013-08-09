@@ -66,7 +66,7 @@ std::vector<Tree> generate_all(const std::set<NodeType>& ops, int size, bool in_
 		else if(op == NODE_IF0)
 		{
 			for(int s1=1; s1<size-1; ++s1)
-			for(int s2=1; s1+s2<size-1; ++s1) {
+			for(int s2=1; s1+s2<size-1; ++s2) {
 				int s3 = size-1-s1-s2;
 				for(auto& c1 : generate_all(ops, s1, in_fold))
 				for(auto& c2 : generate_all(ops, s2, in_fold))
@@ -77,7 +77,7 @@ std::vector<Tree> generate_all(const std::set<NodeType>& ops, int size, bool in_
 		else if(op == NODE_FOLD && !in_fold)
 		{
 			for(int s1=1; s1<size-2; ++s1)
-			for(int s2=1; s1+s2<size-2; ++s1) {
+			for(int s2=1; s1+s2<size-2; ++s2) {
 				int s3 = size-2-s1-s2;
 				for(auto& c1 : generate_all(ops, s1, in_fold))
 				for(auto& c2 : generate_all(ops, s2, in_fold))
