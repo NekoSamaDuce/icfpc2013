@@ -160,10 +160,10 @@ int main(int argc, char* argv[])
 		for(std::string op; ss>>op; )
 			if(op == std::string("tfold")) {
 				has_tfold = true;
-				ops.emplace(NODE_FOLD);
+				ops.insert(NODE_FOLD);
 			}
 			else {
-				ops.emplace(node_type_from_string(op));
+				ops.insert(node_type_from_string(op));
 			}
 	}
 

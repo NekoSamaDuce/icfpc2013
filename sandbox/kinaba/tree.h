@@ -95,7 +95,7 @@ public:
 	template<typename... ARGS>
 	TreeObj(NodeType type, ARGS&&... child) : type_(type), child_({child...})
 	{
-		assert(node_arity(type_) == child_.size());
+		assert(node_arity(type_) == static_cast<int>(child_.size()));
 	}
 
 	NodeType type() const { return type_; }
@@ -151,7 +151,7 @@ public:
 		std::function<void(const TreeObj&)> rec;
 		rec = [&](const TreeObj& t) {
 			if(node_arity(t.type()) > 0)
-				result.emplace(t.type());
+				result.insert(t.type());
 			for(auto& ch : t.child_)
 				rec(*ch);
 		};
