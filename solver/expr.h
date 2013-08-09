@@ -6,6 +6,8 @@
 #include <memory>
 #include <string>
 
+#include "util.h"
+
 namespace icfpc {
 
 #define DISALLOW_COPY_AND_ASSIGN(type) \
@@ -148,9 +150,7 @@ class IdExpr : public Expr {
       case Name::Y: return CreateY();
       case Name::Z: return CreateZ();
     }
-
-    // Not reached
-    return std::shared_ptr<IdExpr>();
+    NOTREACHED();
   }
 
   static std::shared_ptr<IdExpr> CreateX() {
@@ -304,6 +304,7 @@ class UnaryOpExpr : public Expr {
       case Type::SHR1: *os << "shr1"; break;
       case Type::SHR4: *os << "shr4"; break;
       case Type::SHR16: *os << "shr16"; break;
+      default: NOTREACHED();
     }
     *os << " " << *arg_ << ")";
   }
@@ -316,6 +317,7 @@ class UnaryOpExpr : public Expr {
       case Type::SHR1: return v1 >> 1;
       case Type::SHR4: return v1 >> 4;
       case Type::SHR16: return v1 >> 16;
+      default: NOTREACHED();
     }
     return 0;
   }
@@ -328,6 +330,7 @@ class UnaryOpExpr : public Expr {
       case Type::SHR1: return OpType::SHR1;
       case Type::SHR4: return OpType::SHR4;
       case Type::SHR16: return OpType::SHR16;
+      default: NOTREACHED();
     }
     return 0;
   }
@@ -362,6 +365,7 @@ class BinaryOpExpr : public Expr {
       case Type::OR: *os << "or"; break;
       case Type::XOR: *os << "xor"; break;
       case Type::PLUS: *os << "plus"; break;
+      default: NOTREACHED();
     }
     *os << " " << *arg1_ << " " << *arg2_ << ")";
   }
@@ -374,6 +378,7 @@ class BinaryOpExpr : public Expr {
       case Type::OR: return v1 | v2;
       case Type::XOR: return v1 ^ v2;
       case Type::PLUS: return v1 + v2;
+      default: NOTREACHED();
     }
     return 0;
   }
@@ -385,6 +390,7 @@ class BinaryOpExpr : public Expr {
       case Type::OR: return OpType::OR;
       case Type::XOR: return OpType::XOR;
       case Type::PLUS: return OpType::PLUS;
+      default: NOTREACHED();
     }
     return 0;
   }
@@ -398,6 +404,61 @@ uint64_t Eval(const Expr& e, uint64_t x) {
   Env env;
   env.x = x;
   return e.Eval(env);
+}
+
+OpType ParseOpType(const std::string& s) {
+  if (s == "not") {
+    return OpType::NOT;
+  }
+  if (s == "shl1") {
+    return OpType::SHL1;
+  }
+  if (s == "shr1") {
+    return OpType::SHR1;
+  }
+  if (s == "shr4") {
+    return OpType::SHR4;
+  }
+  if (s == "shr16") {
+    return OpType::SHR16;
+  }
+  if (s == "and") {
+    return OpType::AND;
+  }
+  if (s == "or") {
+    return OpType::OR;
+  }
+  if (s == "xor") {
+    return OpType::XOR;
+  }
+  if (s == "plus") {
+    return OpType::PLUS;
+  }
+  if (s == "if0") {
+    return OpType::IF0;
+  }
+  if (s == "fold") {
+    return OpType::FOLD;
+  }
+  if (s == "tfold") {
+    return OpType::TFOLD;
+  }
+  NOTREACHED();
+}
+
+int ParseOpTypeSet(const std::string& s) {
+  int op_type_set = 0;
+  std::string param = s;
+  for (auto& c : param) {
+    if (c == ',') {
+      c = ' ';
+    }
+  }
+  std::stringstream ss(param);
+  for(std::string op; ss >> op; ) {
+    op_type_set |= ParseOpType(op);
+  }
+  return op_type_set;
 }
 
 }  // namespace icpfc
