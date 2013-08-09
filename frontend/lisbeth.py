@@ -27,6 +27,27 @@ gflags.DEFINE_string(
 gflags.MarkFlagAsRequired('genall_solver')
 
 
+def BruteForceGuess(problem, programs):
+  for program in programs:
+    logging.info('=== %s', program)
+    try:
+      example = api.Guess(problem.id, program)
+      logging.info('rejected. argument=0x%016x, expected=0x%016x, actual=0x%016x',
+                   example.argument, example.expected, example.actual)
+    except api.Solved:
+      logging.info('')
+      logging.info(u'*\u30fb\u309c\uff9f\uff65*:.\uff61. '
+                   u'SOLVED!'
+                   u' .\uff61.:*\uff65\u309c\uff9f\uff65*:')
+      logging.info('')
+      break
+  else:
+    logging.error('************************************')
+    logging.error('NO PROGRAM WAS ACCEPTED. DEAD END...')
+    logging.error('************************************')
+    sys.exit(1)
+
+
 def main():
   sys.argv = FLAGS(sys.argv)
   stdlog.setup()
@@ -44,29 +65,7 @@ def main():
 
   logging.info('Candidate programs: %d', len(programs))
 
-  for program in programs:
-    logging.info('=== %s', program)
-    for trial in xrange(60):
-      try:
-        example = api.Guess(problem.id, program)
-        logging.info('rejected. argument=0x%016x, expected=0x%016x, actual=0x%016x',
-                     example.argument, example.expected, example.actual)
-        break
-      except api.RateLimited:
-        logging.info('... rate limited ...')
-        if trial > 0:
-          time.sleep(1)
-      except api.Solved:
-        logging.info('')
-        logging.info(u'*\u30fb\u309c\uff9f\uff65*:.\uff61. '
-                     u'SOLVED!'
-                     u' .\uff61.:*\uff65\u309c\uff9f\uff65*:')
-        logging.info('')
-        sys.exit(0)
-  logging.info('************************************')
-  logging.info('NO PROGRAM WAS ACCEPTED. DEAD END...')
-  logging.info('************************************')
-  sys.exit(1)
+  BruteForceGuess(problem, programs)
 
 
 if __name__ == '__main__':

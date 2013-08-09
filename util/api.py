@@ -1,4 +1,5 @@
 import json
+import logging
 
 import requests
 
@@ -68,6 +69,16 @@ class CounterExample(object):
     return '<%s>' % ' '.join(v)
 
 
+def WithRetry(func, *args, **kwargs):
+  for trial in xrange(60):
+    try:
+      return func(*args, **kwargs)
+    except RateLimited:
+      logging.warning('Rate limited. retry(%d)' % trial)
+      if trial > 0:
+        time.sleep(1)
+
+
 def GenericRequest(endpoint, request=None):
   url = 'http://icfpc2013.cloudapp.net/%s?auth=%s' % (endpoint, AUTH_TOKEN)
   if request is None:
@@ -81,7 +92,9 @@ def GenericRequest(endpoint, request=None):
   raise ApiError('status_code = %d' % response.status_code)
 
 
-def Train(size, operators):
+def Train(size, operators, auto_retry=True):
+  if auto_retry:
+    return WithRetry(Train, size, operators, auto_retry=False)
   assert 3 <= size <= 30, 'size should be in [3, 30]'
   assert operators in ('', 'tfold', 'fold'), (
     'operators must be either an empty, tfold or fold')
@@ -91,15 +104,18 @@ def Train(size, operators):
                  answer=str(p['challenge']))
 
 
-def MyProblems():
-  #raise Exception('Do not access real data!')
+def MyProblems(auto_retry=True):
+  if auto_retry:
+    return WithRetry(MyProblems, auto_retry=False)
   ps = GenericRequest('myproblems')
   return [Problem(str(p['id']), p['size'], map(str, p['operators']),
                   solved=p.get('solved'), time_left=p.get('timeLeft'))
           for p in ps]
 
 
-def Eval(id, arguments):
+def Eval(id, arguments, auto_retry=True):
+  if auto_retry:
+    return WithRetry(Eval, id, arguments, auto_retry=False)
   assert 1 <= len(arguments) <= 256, '# of arguments should be in [1, 256]'
   request = {'id': id, 'arguments': ['0x%016X' % a for a in arguments]}
   s = GenericRequest('eval', request)
@@ -109,7 +125,9 @@ def Eval(id, arguments):
   return [int(o, 0) for o in s['outputs']]
 
 
-def Guess(id, program):
+def Guess(id, program, auto_retry=True):
+  if auto_retry:
+    return WithRetry(Guess, id, program, auto_retry=False)
   request = {'id': id, 'program': program}
   s = GenericRequest('guess', request)
   if s['status'] == 'error':
