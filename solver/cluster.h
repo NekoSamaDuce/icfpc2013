@@ -16,7 +16,15 @@ std::vector<uint64_t> CreateKey() {
   std::uniform_int_distribution<uint64_t> rand_distr(0, ~0ull);
   std::vector<uint64_t> keys;
   keys.reserve(256);
-  for (size_t i = 0; i < 256; ++i) {
+  for (int64_t i = -7; i <= 7; ++i) {
+    keys.push_back(static_cast<uint64_t>(i));
+  }
+  for (int i = 0; i < 64; ++i) {
+    keys.push_back(1ULL << i);
+    keys.push_back(~(1ULL << i));
+  }
+
+  while (keys.size() < 256) {
     keys.emplace_back(rand_distr(rand_engine));
   }
   return keys;
