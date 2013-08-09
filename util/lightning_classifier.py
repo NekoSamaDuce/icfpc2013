@@ -108,10 +108,11 @@ def main():
   for problem in problems:
     arguments, clusters = RunClusterSolver(problem)
     max_cluster_size = max([len(programs) for expected, programs in clusters])
+    line = '%s size=%d max_cluster_size=%d' % (problem.id, problem.size, max_cluster_size)
     if max_cluster_size <= FLAGS.max_cluster_size:
-      print problem.id, problem.size
+      print line
     else:
-      print '#', problem.id, problem.size
+      print '#', line
 
 
 if __name__ == '__main__':
