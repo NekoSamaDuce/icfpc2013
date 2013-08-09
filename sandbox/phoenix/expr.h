@@ -27,6 +27,12 @@ enum OpType {
   TFOLD = 1 << 11,
 };
 
+struct Env {
+  uint64_t x;
+  uint64_t y;
+  uint64_t z;
+};
+
 // An interface of the expression.
 class Expr {
  public:
@@ -44,12 +50,17 @@ class Expr {
   bool has_fold() const { return has_fold_; }
   int op_type() const { return op_type_; }
 
+  uint64_t Eval(const Env& env) const {
+    return EvalImpl(env);
+  }
+
  protected:
   friend std::ostream& operator<<(std::ostream&, const Expr&);
 
   Expr(std::size_t depth, bool in_fold, bool has_fold, int op_type)
       : depth_(depth), in_fold_(in_fold), has_fold_(has_fold), op_type_(op_type) {}
   virtual void Output(std::ostream* os) const = 0;
+  virtual uint64_t EvalImpl(const Env& env) const = 0;
 
   std::size_t depth_;
   bool in_fold_;
@@ -81,6 +92,10 @@ class LambdaExpr : public Expr {
     *os << "(lambda (x) " << *body_ << ")";
   }
 
+  virtual uint64_t EvalImpl(const Env& env) const {
+    return body_->Eval(env);
+  }
+
  private:
   std::shared_ptr<Expr> body_;
 };
@@ -110,6 +125,10 @@ class ConstantExpr : public Expr {
  protected:
   virtual void Output(std::ostream* os) const {
     *os << (value_ == Value::ZERO ? "0" : "1");
+  }
+
+  virtual uint64_t EvalImpl(const Env& env) const {
+    return static_cast<uint64_t>(value_);
   }
 
  private:
@@ -158,6 +177,15 @@ class IdExpr : public Expr {
     }
   }
 
+  virtual uint64_t EvalImpl(const Env& env) const {
+    switch (name_) {
+      case Name::X: return env.x;
+      case Name::Y: return env.y;
+      case Name::Z: return env.z;
+    }
+    return 0;
+  }
+
  private:
   Name name_;
 };
@@ -183,6 +211,15 @@ class If0Expr : public Expr {
  protected:
   virtual void Output(std::ostream* os) const {
     *os << "(if0 " << *cond_ << " " << *then_body_ << " " << *else_body_ << ")";
+  }
+
+  virtual uint64_t EvalImpl(const Env& env) const {
+    uint64_t cond = cond_->Eval(env);
+    if (cond == 0) {
+      return then_body_->Eval(env);
+    } else {
+      return else_body_->Eval(env);
+    }
   }
 
  private:
@@ -224,6 +261,19 @@ class FoldExpr : public Expr {
         << " (lambda (y z) " << *body_ << "))";
   }
 
+  virtual uint64_t EvalImpl(const Env& env) const {
+    uint64_t value = value_->Eval(env);
+    uint64_t acc = init_value_->Eval(env);
+
+    Env env2 = env;
+    for (size_t i = 0; i < 8; ++i, value >>= 8) {
+      env2.y = (value & 0xFF);
+      env2.z = acc;
+      acc = body_->Eval(env2);
+    }
+    return acc;
+  }
+
  private:
   std::shared_ptr<Expr> value_;
   std::shared_ptr<Expr> init_value_;
@@ -256,6 +306,18 @@ class UnaryOpExpr : public Expr {
       case Type::SHR16: *os << "shr16"; break;
     }
     *os << " " << *arg_ << ")";
+  }
+
+  virtual uint64_t EvalImpl(const Env& env) const {
+    uint64_t v1 = arg_->Eval(env);
+    switch (type_) {
+      case Type::NOT: return ~v1;
+      case Type::SHL1: return v1 << 1;
+      case Type::SHR1: return v1 >> 1;
+      case Type::SHR4: return v1 >> 4;
+      case Type::SHR16: return v1 >> 16;
+    }
+    return 0;
   }
 
  private:
@@ -304,6 +366,18 @@ class BinaryOpExpr : public Expr {
     *os << " " << *arg1_ << " " << *arg2_ << ")";
   }
 
+  virtual uint64_t EvalImpl(const Env& env) const {
+    uint64_t v1 = arg1_->Eval(env);
+    uint64_t v2 = arg2_->Eval(env);
+    switch (type_) {
+      case Type::AND: return v1 & v2;
+      case Type::OR: return v1 | v2;
+      case Type::XOR: return v1 ^ v2;
+      case Type::PLUS: return v1 + v2;
+    }
+    return 0;
+  }
+
  private:
   static int ToOpType(Type type) {
     switch(type) {
@@ -319,6 +393,12 @@ class BinaryOpExpr : public Expr {
   std::shared_ptr<Expr> arg1_;
   std::shared_ptr<Expr> arg2_;
 };
+
+uint64_t Eval(const Expr& e, uint64_t x) {
+  Env env;
+  env.x = x;
+  return e.Eval(env);
+}
 
 }  // namespace icpfc
 
