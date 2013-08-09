@@ -50,7 +50,7 @@ class Expr {
   std::size_t depth() const { return depth_; }
   bool in_fold() const { return in_fold_; }
   bool has_fold() const { return has_fold_; }
-  int op_type() const { return op_type_; }
+  int op_type_set() const { return op_type_set_; }
 
   uint64_t Eval(const Env& env) const {
     return EvalImpl(env);
@@ -59,15 +59,15 @@ class Expr {
  protected:
   friend std::ostream& operator<<(std::ostream&, const Expr&);
 
-  Expr(std::size_t depth, bool in_fold, bool has_fold, int op_type)
-      : depth_(depth), in_fold_(in_fold), has_fold_(has_fold), op_type_(op_type) {}
+  Expr(std::size_t depth, bool in_fold, bool has_fold, int op_type_set)
+      : depth_(depth), in_fold_(in_fold), has_fold_(has_fold), op_type_set_(op_type_set) {}
   virtual void Output(std::ostream* os) const = 0;
   virtual uint64_t EvalImpl(const Env& env) const = 0;
 
   std::size_t depth_;
   bool in_fold_;
   bool has_fold_;
-  int op_type_;
+  int op_type_set_;
 
   DISALLOW_COPY_AND_ASSIGN(Expr);
 };
@@ -82,7 +82,7 @@ std::ostream& operator<<(std::ostream& os, const Expr& e) {
 class LambdaExpr : public Expr {
  public:
   LambdaExpr(std::shared_ptr<Expr> body)
-      : Expr(1 + body->depth(), body->in_fold(), body->has_fold(), body->op_type()), body_(body) {
+      : Expr(1 + body->depth(), body->in_fold(), body->has_fold(), body->op_type_set()), body_(body) {
   }
 
   static std::shared_ptr<LambdaExpr> Create(std::shared_ptr<Expr> body) {
@@ -198,7 +198,7 @@ class If0Expr : public Expr {
       : Expr(1 + cond->depth() + then_body->depth() + else_body->depth(),
              cond->in_fold() | then_body->in_fold() | else_body->in_fold(),
              cond->has_fold() | then_body->has_fold() | else_body->has_fold(),
-             OpType::IF0 | cond->op_type() | then_body->op_type() | else_body->op_type()),
+             OpType::IF0 | cond->op_type_set() | then_body->op_type_set() | else_body->op_type_set()),
         cond_(cond), then_body_(then_body), else_body_(else_body) {
   }
 
@@ -235,13 +235,13 @@ class FoldExpr : public Expr {
            std::shared_ptr<Expr> init_value,
            std::shared_ptr<Expr> body)
       : Expr(2 + value->depth() + init_value->depth() + body->depth(), false, true,
-             OpType::FOLD | value->op_type() | init_value->op_type() | body->op_type()),
+             OpType::FOLD | value->op_type_set() | init_value->op_type_set() | body->op_type_set()),
         value_(value), init_value_(init_value), body_(body) {
   }
 
   explicit FoldExpr(std::shared_ptr<Expr> body)
       : Expr(2 + 1 + 1 + body->depth(), false, true,
-             OpType::TFOLD | body->op_type()),
+             OpType::TFOLD | body->op_type_set()),
         value_(IdExpr::CreateX()), init_value_(ConstantExpr::CreateZero()), body_(body) {
   }
 
@@ -287,7 +287,7 @@ class UnaryOpExpr : public Expr {
   };
 
   UnaryOpExpr(Type type, std::shared_ptr<Expr> arg)
-      : Expr(1 + arg->depth(), arg->in_fold(), arg->has_fold(), ToOpType(type) | arg->op_type()),
+      : Expr(1 + arg->depth(), arg->in_fold(), arg->has_fold(), ToOpType(type) | arg->op_type_set()),
         type_(type), arg_(arg) {
   }
 
@@ -348,7 +348,7 @@ class BinaryOpExpr : public Expr {
       : Expr(1 + arg1->depth() + arg2->depth(),
              arg1->in_fold() | arg2->in_fold(),
              arg1->has_fold() | arg2->has_fold(),
-             ToOpType(type) | arg1->op_type() | arg2->op_type()),
+             ToOpType(type) | arg1->op_type_set() | arg2->op_type_set()),
         type_(type), arg1_(arg1), arg2_(arg2) {
   }
 

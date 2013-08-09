@@ -164,7 +164,7 @@ std::vector<std::shared_ptr<Expr> > ListExpr(std::size_t depth, int op_type_set)
       child_list.begin(), child_list.end(), std::make_shared<KeyExpr>(depth - 1), DepthComp());
   std::vector<std::shared_ptr<Expr> > result;
   while (range.first != range.second) {
-    if (!(*range.first)->in_fold() && (*range.first)->op_type() == op_type_set)
+    if (!(*range.first)->in_fold() && (*range.first)->op_type_set() == op_type_set)
       result.push_back(LambdaExpr::Create(*range.first));
     ++range.first;
   }
