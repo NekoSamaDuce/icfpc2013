@@ -2,7 +2,7 @@
 
 CXX=g++
 CXXFLAGS=-std=gnu++0x -Werror -Wall -O2 -lglog -lgflags
-BINARIES=genall cluster_main simplify_main
+BINARIES=genall cluster_main simplify_main batch_evaluate
 
 all: $(BINARIES)
 
@@ -13,6 +13,9 @@ cluster_main: cluster_main.cc expr.h expr_list.h cluster.h
 	$(CXX) $< $(CXXFLAGS) -o $@
 
 simplify_main: simplify_main.cc expr.h expr_list.h cluster.h simplify.h
+	$(CXX) $< $(CXXFLAGS) -o $@
+
+batch_evaluate: batch_evaluate.cc expr.h expr_list.h parser.h
 	$(CXX) $< $(CXXFLAGS) -o $@
 
 clean:
