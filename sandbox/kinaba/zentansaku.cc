@@ -149,6 +149,7 @@ DEFINE_bool(classify, false, "Enable classifier");
 int main(int argc, char* argv[])
 {
 	google::ParseCommandLineFlags(&argc, &argv, true);
+	std::ios::sync_with_stdio(false);
 
 	int size = FLAGS_size;
 	std::set<NodeType> ops;
