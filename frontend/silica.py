@@ -1,8 +1,8 @@
 """Silica: Solver frontend v2.
 
 Example:
-./python.sh -m frontend.silica --mode=train --size=3 --operators=
-./python.sh -m frontend.silica --mode=serious --problemset_file=data/train_small.tsv --problem_id=xop6dUzEtUBAprA0DGVwcAvB
+./python.sh -m frontend.silica --mode=train --size=3 --operators= --max_cluster_size=20
+./python.sh -m frontend.silica --mode=serious --problemset_file=data/train_small.tsv --problem_id=xop6dUzEtUBAprA0DGVwcAvB --max_cluster_size=20
 """
 
 import logging
@@ -30,6 +30,12 @@ gflags.MarkFlagAsRequired('cluster_solver')
 #     'batch_evaluate_solver', os.path.join(SOLVER_DIR, 'batch_evaluate'),
 #     'Path to batch evaluate solver binary.')
 # gflags.MarkFlagAsRequired('batch_evaluate_solver')
+
+gflags.DEFINE_integer(
+    'max_cluster_size', None,
+    'Maximum size of a cluster allowed to proceed before starting to solve '
+    'a problem.')
+gflags.MarkFlagAsRequired('max_cluster_size')
 
 
 def RunClusterSolver(problem):
@@ -88,6 +94,11 @@ def main():
   logging.info('Candidate programs: %d', sum(cluster_sizes_decreasing))
   logging.info('Candidate clusters: %d', len(clusters))
   logging.info('Cluster sizes: %s', ', '.join(map(str, cluster_sizes_decreasing)))
+
+  if cluster_sizes_decreasing[0] > FLAGS.max_cluster_size:
+    logging.error('Maximum cluster size was above threshold (%d)', FLAGS.max_cluster_size)
+    logging.error('Stop.')
+    sys.exit(1)
 
   logging.info('Issueing /eval...')
   outputs = api.Eval(problem.id, arguments)
