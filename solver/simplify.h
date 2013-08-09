@@ -166,7 +166,10 @@ std::shared_ptr<Expr> SimplifyAnd(const std::shared_ptr<BinaryOpExpr>& expr) {
     return arg1;
   }
 
-  // TODO reorder args.
+  if (arg1->CompareTo(*arg2) > 0) {
+    arg1.swap(arg2);
+  }
+
   if (arg1.get() == expr->arg1().get() &&
       arg2.get() == expr->arg2().get()) {
     return expr;
@@ -217,6 +220,10 @@ std::shared_ptr<Expr> SimplifyOr(const std::shared_ptr<BinaryOpExpr>& expr) {
     return arg1;
   }
 
+  if (arg1->CompareTo(*arg2) > 0) {
+    arg1.swap(arg2);
+  }
+
   if (arg1.get() == expr->arg1().get() &&
       arg2.get() == expr->arg2().get()) {
     return expr;
@@ -258,6 +265,10 @@ std::shared_ptr<Expr> SimplifyXor(const std::shared_ptr<BinaryOpExpr>& expr) {
     return UnaryOpExpr::Create(UnaryOpExpr::Type::NOT, arg1);
   }
 
+  if (arg1->CompareTo(*arg2) > 0) {
+    arg1.swap(arg2);
+  }
+
   if (arg1.get() == expr->arg1().get() &&
       arg2.get() == expr->arg2().get()) {
     return expr;
@@ -283,6 +294,10 @@ std::shared_ptr<Expr> SimplifyPlus(const std::shared_ptr<BinaryOpExpr>& expr) {
   if (arg2->op_type() == OpType::CONSTANT &&
       static_cast<const ConstantExpr&>(*arg2).value() == 0) {
     return arg1;
+  }
+
+  if (arg1->CompareTo(*arg2) > 0) {
+    arg1.swap(arg2);
   }
 
   if (arg1.get() == expr->arg1().get() &&

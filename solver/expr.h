@@ -71,6 +71,13 @@ class Expr {
     return EqualToImpl(other);
   }
 
+  int CompareTo(const Expr& other) const {
+    if (this == &other) return 0;
+    if (op_type() != other.op_type())
+      return op_type() < other.op_type() ? -1 : 1;
+    return CompareToImpl(other);
+  }
+
  protected:
   friend std::ostream& operator<<(std::ostream&, const Expr&);
 
@@ -81,6 +88,7 @@ class Expr {
   virtual void Output(std::ostream* os) const = 0;
   virtual uint64_t EvalImpl(const Env& env) const = 0;
   virtual bool EqualToImpl(const Expr& other) const = 0;
+  virtual int CompareToImpl(const Expr& other) const = 0;
 
   OpType op_type_;
   int op_type_set_;
@@ -126,6 +134,10 @@ class LambdaExpr : public Expr {
     return body_->EqualTo(*static_cast<const LambdaExpr&>(expr).body_);
   }
 
+  virtual int CompareToImpl(const Expr& expr) const {
+    return body_->CompareTo(*static_cast<const LambdaExpr&>(expr).body_);
+  }
+
  private:
   std::shared_ptr<Expr> body_;
 };
@@ -164,6 +176,13 @@ class ConstantExpr : public Expr {
 
   virtual bool EqualToImpl(const Expr& other) const {
     return value_ == static_cast<const ConstantExpr&>(other).value_;
+  }
+
+  virtual int CompareToImpl(const Expr& other) const {
+    uint64_t v = static_cast<const ConstantExpr&>(other).value_;
+    if (value_ != v)
+      return value_ < v ? -1 : 1;
+    return 0;
   }
 
  private:
@@ -226,6 +245,13 @@ class IdExpr : public Expr {
     return name_ == static_cast<const IdExpr&>(other).name_;
   }
 
+  virtual int CompareToImpl(const Expr& other) const {
+    Name n = static_cast<const IdExpr&>(other).name_;
+    if (name_ != n)
+      return name_ < n ? -1 : 1;
+    return 0;
+  }
+
  private:
   Name name_;
 };
@@ -272,6 +298,15 @@ class If0Expr : public Expr {
     return cond_->EqualTo(*expr.cond_)
         && then_body_->EqualTo(*expr.then_body_)
         && else_body_->EqualTo(*expr.else_body_);
+  }
+
+  virtual int CompareToImpl(const Expr& other) const {
+    const If0Expr& expr = static_cast<const If0Expr&>(other);
+    int cmp = cond_->CompareTo(*expr.cond_);
+    if (cmp != 0) return cmp;
+    cmp = then_body_->CompareTo(*expr.then_body_);
+    if (cmp != 0) return cmp;
+    return else_body_->CompareTo(*expr.else_body_);
   }
 
  private:
@@ -339,6 +374,15 @@ class FoldExpr : public Expr {
         && body_->EqualTo(*expr.body_);
   }
 
+  virtual int CompareToImpl(const Expr& other) const {
+    const FoldExpr& expr = static_cast<const FoldExpr&>(other);
+    int cmp = value_->CompareTo(*expr.value_);
+    if (cmp != 0) return cmp;
+    cmp = init_value_->CompareTo(*expr.init_value_);
+    if (cmp != 0) return cmp;
+    return body_->CompareTo(*expr.body_);
+  }
+
  private:
   std::shared_ptr<Expr> value_;
   std::shared_ptr<Expr> init_value_;
@@ -394,6 +438,13 @@ class UnaryOpExpr : public Expr {
   virtual bool EqualToImpl(const Expr& other) const {
     const UnaryOpExpr& expr = static_cast<const UnaryOpExpr&>(other);
     return type_ == expr.type_ && arg_->EqualTo(*expr.arg_);
+  }
+
+  virtual int CompareToImpl(const Expr& other) const {
+    const UnaryOpExpr& expr = static_cast<const UnaryOpExpr&>(other);
+    if (type_ != expr.type_)
+      return type_ < expr.type_ ? -1 : 1;
+    return arg_->CompareTo(*expr.arg_);
   }
 
  private:
@@ -464,6 +515,15 @@ class BinaryOpExpr : public Expr {
   virtual bool EqualToImpl(const Expr& other) const {
     const BinaryOpExpr& expr = static_cast<const BinaryOpExpr&>(other);
     return type_ == expr.type_ && arg1_->EqualTo(*expr.arg1_) && arg2_->EqualTo(*expr.arg2_);
+  }
+
+  virtual int CompareToImpl(const Expr& other) const {
+    const BinaryOpExpr& expr = static_cast<const BinaryOpExpr&>(other);
+    if (type_ != expr.type_)
+      return type_ < expr.type_ ? -1 : 1;
+    int cmp = arg1_->CompareTo(*expr.arg1_);
+    if (cmp != 0) return cmp;
+    return arg2_->CompareTo(*expr.arg2_);
   }
 
  private:
