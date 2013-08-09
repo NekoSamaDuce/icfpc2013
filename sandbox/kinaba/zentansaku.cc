@@ -139,6 +139,7 @@ void classify_output(const std::vector<Tree>& all)
 		for(auto& t : c.second)
 			std::cerr << t << std::endl;
 	}
+	std::cerr << "===== " << cvec.size() << " equivalence classes." << std::endl;
 
 }
 
