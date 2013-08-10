@@ -59,6 +59,30 @@ TEST(SimplifyOrTest, XX_ReducedToX) {
   ASSERT_TRUE(s->EqualTo(*IdExpr::CreateX()));
 }
 
+TEST(SimplifyOrTest, XFull_Reduced) {
+  std::shared_ptr<BinaryOpExpr> e =
+    BinaryOpExpr::Create(BinaryOpExpr::Type::OR,
+                         IdExpr::CreateX(),
+                         ConstantExpr::CreateFull());
+
+  // Reduced.
+  std::shared_ptr<Expr> s = Simplify(e);
+  ASSERT_EQ(s->op_type(), CONSTANT);
+  ASSERT_EQ(std::static_pointer_cast<ConstantExpr>(s)->value(), g_fullbits);
+}
+
+TEST(SimplifyOrTest, FullX_Reduced) {
+  std::shared_ptr<BinaryOpExpr> e =
+    BinaryOpExpr::Create(BinaryOpExpr::Type::OR,
+                         ConstantExpr::CreateFull(),
+                         IdExpr::CreateX());
+
+  // Reduced.
+  std::shared_ptr<Expr> s = Simplify(e);
+  ASSERT_EQ(s->op_type(), CONSTANT);
+  ASSERT_EQ(std::static_pointer_cast<ConstantExpr>(s)->value(), g_fullbits);
+}
+
 TEST(SimplifyOrTest, XOne_Swapped) {
   std::shared_ptr<BinaryOpExpr> e =
     BinaryOpExpr::Create(BinaryOpExpr::Type::OR,
@@ -118,16 +142,76 @@ TEST(SimplifyOrTest, ZeroX_Reduced) {
   ASSERT_EQ(std::static_pointer_cast<IdExpr>(s)->name(), IdExpr::Name::X);
 }
 
-TEST(SimplifyOrTest, ZeroZero_Reduced) {
+TEST(SimplifyOrTest, FullFull_ReducedToFull) {
+  std::shared_ptr<BinaryOpExpr> e =
+    BinaryOpExpr::Create(BinaryOpExpr::Type::OR,
+                         ConstantExpr::CreateFull(),
+                         ConstantExpr::CreateFull());
+
+  // Reduced.
+  std::shared_ptr<Expr> s = Simplify(e);
+  ASSERT_EQ(s->op_type(), CONSTANT);
+  ASSERT_EQ(std::static_pointer_cast<ConstantExpr>(s)->value(), g_fullbits);
+}
+
+TEST(SimplifyOrTest, OneFull_ReducedToFull) {
+  std::shared_ptr<BinaryOpExpr> e =
+    BinaryOpExpr::Create(BinaryOpExpr::Type::OR,
+                         ConstantExpr::CreateOne(),
+                         ConstantExpr::CreateFull());
+
+  // Reduced.
+  std::shared_ptr<Expr> s = Simplify(e);
+  ASSERT_EQ(s->op_type(), CONSTANT);
+  ASSERT_EQ(std::static_pointer_cast<ConstantExpr>(s)->value(), g_fullbits);
+}
+
+TEST(SimplifyOrTest, FullOne_ReducedToFull) {
+  std::shared_ptr<BinaryOpExpr> e =
+    BinaryOpExpr::Create(BinaryOpExpr::Type::OR,
+                         ConstantExpr::CreateFull(),
+                         ConstantExpr::CreateOne());
+
+  // Reduced.
+  std::shared_ptr<Expr> s = Simplify(e);
+  ASSERT_EQ(s->op_type(), CONSTANT);
+  ASSERT_EQ(std::static_pointer_cast<ConstantExpr>(s)->value(), g_fullbits);
+}
+
+TEST(SimplifyOrTest, ZeroFull_ReducedToFull) {
   std::shared_ptr<BinaryOpExpr> e =
     BinaryOpExpr::Create(BinaryOpExpr::Type::OR,
                          ConstantExpr::CreateZero(),
+                         ConstantExpr::CreateFull());
+
+  // Reduced.
+  std::shared_ptr<Expr> s = Simplify(e);
+  ASSERT_EQ(s->op_type(), CONSTANT);
+  ASSERT_EQ(std::static_pointer_cast<ConstantExpr>(s)->value(), g_fullbits);
+}
+
+TEST(SimplifyOrTest, FullZero_ReducedToFull) {
+  std::shared_ptr<BinaryOpExpr> e =
+    BinaryOpExpr::Create(BinaryOpExpr::Type::OR,
+                         ConstantExpr::CreateFull(),
                          ConstantExpr::CreateZero());
 
   // Reduced.
   std::shared_ptr<Expr> s = Simplify(e);
   ASSERT_EQ(s->op_type(), CONSTANT);
-  ASSERT_EQ(std::static_pointer_cast<ConstantExpr>(s)->value(), 0U);
+  ASSERT_EQ(std::static_pointer_cast<ConstantExpr>(s)->value(), g_fullbits);
+}
+
+TEST(SimplifyOrTest, OneOne_Reduced) {
+  std::shared_ptr<BinaryOpExpr> e =
+    BinaryOpExpr::Create(BinaryOpExpr::Type::OR,
+                         ConstantExpr::CreateOne(),
+                         ConstantExpr::CreateOne());
+
+  // Reduced.
+  std::shared_ptr<Expr> s = Simplify(e);
+  ASSERT_EQ(s->op_type(), CONSTANT);
+  ASSERT_EQ(std::static_pointer_cast<ConstantExpr>(s)->value(), 1U);
 }
 
 TEST(SimplifyOrTest, OneZero_Reduced) {
@@ -154,16 +238,16 @@ TEST(SimplifyOrTest, ZeroOne_Reduced) {
   ASSERT_EQ(std::static_pointer_cast<ConstantExpr>(s)->value(), 1U);
 }
 
-TEST(SimplifyOrTest, OneOne_Reduced) {
+TEST(SimplifyOrTest, ZeroZero_Reduced) {
   std::shared_ptr<BinaryOpExpr> e =
     BinaryOpExpr::Create(BinaryOpExpr::Type::OR,
-                         ConstantExpr::CreateOne(),
-                         ConstantExpr::CreateOne());
+                         ConstantExpr::CreateZero(),
+                         ConstantExpr::CreateZero());
 
   // Reduced.
   std::shared_ptr<Expr> s = Simplify(e);
   ASSERT_EQ(s->op_type(), CONSTANT);
-  ASSERT_EQ(std::static_pointer_cast<ConstantExpr>(s)->value(), 1U);
+  ASSERT_EQ(std::static_pointer_cast<ConstantExpr>(s)->value(), 0U);
 }
 
 
