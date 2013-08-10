@@ -206,14 +206,14 @@ TEST(SimplifyOrTest, NotXNotX_ReducedToZero) {
   ASSERT_TRUE(s->EqualTo(*Parse("(not x)")));
 }
 
-TEST(SimplifyOrTest, NotXX_AsIs) {
+TEST(SimplifyOrTest, NotXX_ReducedToFull) {
   std::shared_ptr<Expr> e = Parse("(or (not x) x)");
   std::shared_ptr<Expr> s = Simplify(e);
   ASSERT_EQ(s->op_type(), CONSTANT);
   ASSERT_EQ(std::static_pointer_cast<ConstantExpr>(s)->value(), g_fullbits);
 }
 
-TEST(SimplifyOrTest, XNotX_Swapped) {
+TEST(SimplifyOrTest, XNotX_ReducedToFull) {
   std::shared_ptr<Expr> e = Parse("(or x (not x))");
   std::shared_ptr<Expr> s = Simplify(e);
   ASSERT_EQ(s->op_type(), CONSTANT);
@@ -420,20 +420,20 @@ TEST(SimplifyOrTest, ZeroZero_Reduced) {
 
 // And
 
-TEST(SimplifyAndTest, NotXNotX_ReducedToZero) {
+TEST(SimplifyAndTest, NotXNotX_ReducedToNotX) {
   std::shared_ptr<Expr> e = Parse("(and (not x) (not x))");
   std::shared_ptr<Expr> s = Simplify(e);
   ASSERT_TRUE(s->EqualTo(*Parse("(not x)")));
 }
 
-TEST(SimplifyAndTest, NotXX_AsIs) {
+TEST(SimplifyAndTest, NotXX_ReducedToZero) {
   std::shared_ptr<Expr> e = Parse("(and (not x) x)");
   std::shared_ptr<Expr> s = Simplify(e);
   ASSERT_EQ(s->op_type(), CONSTANT);
   ASSERT_EQ(std::static_pointer_cast<ConstantExpr>(s)->value(), 0U);
 }
 
-TEST(SimplifyAndTest, XNotX_Swapped) {
+TEST(SimplifyAndTest, XNotX_ReducedToZero) {
   std::shared_ptr<Expr> e = Parse("(and x (not x))");
   std::shared_ptr<Expr> s = Simplify(e);
   ASSERT_EQ(s->op_type(), CONSTANT);
@@ -646,14 +646,14 @@ TEST(SimplifyXorTest, NotXNotX_ReducedToZero) {
   ASSERT_TRUE(s->EqualTo(*ConstantExpr::CreateZero()));
 }
 
-TEST(SimplifyXorTest, NotXX_AsIs) {
+TEST(SimplifyXorTest, NotXX_ReducedToFull) {
   std::shared_ptr<Expr> e = Parse("(xor (not x) x)");
   std::shared_ptr<Expr> s = Simplify(e);
   ASSERT_EQ(s->op_type(), CONSTANT);
   ASSERT_EQ(std::static_pointer_cast<ConstantExpr>(s)->value(), g_fullbits);
 }
 
-TEST(SimplifyXorTest, XNotX_Swapped) {
+TEST(SimplifyXorTest, XNotX_ReducedToFull) {
   std::shared_ptr<Expr> e = Parse("(xor x (not x))");
   std::shared_ptr<Expr> s = Simplify(e);
   ASSERT_EQ(s->op_type(), CONSTANT);
@@ -872,14 +872,14 @@ TEST(SimplifyPlusTest, NotXNotX_AsIs) {
   ASSERT_TRUE(s->EqualTo(*Parse("(shl1 (not x))")));
 }
 
-TEST(SimplifyPlusTest, NotXX_AsIs) {
+TEST(SimplifyPlusTest, NotXX_ReducedToFull) {
   std::shared_ptr<Expr> e = Parse("(plus (not x) x)");
   std::shared_ptr<Expr> s = Simplify(e);
   ASSERT_EQ(s->op_type(), CONSTANT);
   ASSERT_EQ(std::static_pointer_cast<ConstantExpr>(s)->value(), g_fullbits);
 }
 
-TEST(SimplifyPlusTest, XNotX_Swapped) {
+TEST(SimplifyPlusTest, XNotX_ReducedToFull) {
   std::shared_ptr<Expr> e = Parse("(plus x (not x))");
   std::shared_ptr<Expr> s = Simplify(e);
   ASSERT_EQ(s->op_type(), CONSTANT);
