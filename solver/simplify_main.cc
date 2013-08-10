@@ -42,7 +42,7 @@ int main(int argc, char* argv[]) {
 
   int i = 0;
   for (auto iter = cluster.cbegin(); iter != cluster.cend(); ++iter) {
-    LOG(INFO) << "Output Cluster " << i++ << ": " << iter->second.size();
+    VLOG(1) << "Output Cluster " << i++ << ": " << iter->second.size();
     std::cout << "expected: ";
     PrintCollection(&std::cout, iter->first, ",");
     std::cout << "\n";
