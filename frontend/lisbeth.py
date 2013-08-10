@@ -59,8 +59,9 @@ def main():
 
   problems = frontend_util.GetProblemByFlags()
 
-  for problem in problems:
-    logging.info('******** NEXT PROBLEM: %r ********', problem)
+  for index, problem in enumerate(problems):
+    logging.info('******** PROBLEM %d/%d: %r ********',
+                 index + 1, len(problems), problem)
 
     solver_output = subprocess.check_output(
         [FLAGS.genall_solver,

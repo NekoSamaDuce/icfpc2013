@@ -30,11 +30,13 @@ gflags.DEFINE_string(
     'problemset_file', None,
     'Path to the problemset TSV file.')
 
-# Flags for --mode=oneoff / --mode=oneoff
+# Flags for --mode=serious / --mode=oneoff
 gflags.DEFINE_string(
     'problem_id', None,
-    'The problem ID to pick from the problem set specified by '
-    '--problemset_file.')
+    'If --mode=oneoff, specifies the problem ID. '
+    'If --mode=serious, this specifies multiple problem IDs to '
+    'process from the problemset file specified by --problemset_file. '
+    'Problem ID specification can be comma-separated list of IDs or "ALL".')
 
 
 def GetProblemsByFlags():
@@ -51,6 +53,7 @@ def GetProblemsByFlags():
   else:  # FLAGS.mode == 'serious'
     assert FLAGS.problem_id, '--problem_id must be specified'
     problemset = {}
+    problem_ids = []
     with open(FLAGS.problemset_file) as f:
       for line in f:
         if line.startswith('#'):
@@ -60,10 +63,15 @@ def GetProblemsByFlags():
         operators = operators.split(',')
         problem = api.Problem(id, size, operators)
         problemset[problem.id] = problem
-    problems = [problemset[problem_id]
-                for problem_id in FLAGS.problem_id.split(',')]
+        problem_ids.append(problem.id)
+    if FLAGS.problem_id != 'ALL':
+      problem_ids = FLAGS.problem_id.split(',')
+    problems = [problemset[problem_id] for problem_id in problem_ids]
   logging.info('%d Problems loaded.', len(problems))
   for i, problem in enumerate(problems):
     logging.info('%d. %s size=%d operators=%s',
                  i+1, problem.id, problem.size, ','.join(problem.operators))
+  logging.info('Enter "go" to continue.')
+  while raw_input() != 'go':
+    pass
   return problems

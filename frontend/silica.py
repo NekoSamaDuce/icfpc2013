@@ -118,8 +118,9 @@ def main():
 
   problems = frontend_util.GetProblemsByFlags()
 
-  for problem in problems:
-    logging.info('******** NEXT PROBLEM: %r ********', problem)
+  for index, problem in enumerate(problems):
+    logging.info('******** PROBLEM %d/%d: %r ********',
+                 index + 1, len(problems), problem)
 
     arguments, clusters = RunClusterSolver(problem)
 
