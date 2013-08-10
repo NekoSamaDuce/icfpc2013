@@ -74,7 +74,17 @@ class Expr : public std::enable_shared_from_this<Expr> {
   }
 
   uint64_t Eval(const Env& env) const {
-    return EvalImpl(env);
+    if (!in_fold_) {
+      if (is_eval_cached_ && x_cache_ == env.x) {
+        return eval_cache_;
+      }
+    }
+
+    uint64_t value = EvalImpl(env);
+    x_cache_ = env.x;
+    eval_cache_ = value;
+    is_eval_cached_ = true;
+    return value;
   }
 
   bool EqualTo(const Expr& other) const {
@@ -96,7 +106,7 @@ class Expr : public std::enable_shared_from_this<Expr> {
   Expr(OpType op_type, int op_type_set, std::size_t depth,
        bool in_fold, bool has_fold)
       : op_type_(op_type), op_type_set_(op_type_set), depth_(depth),
-        in_fold_(in_fold), has_fold_(has_fold), is_simplified_(false) {}
+        in_fold_(in_fold), has_fold_(has_fold), is_simplified_(false), is_eval_cached_(false) {}
   virtual void Output(std::ostream* os) const = 0;
   virtual uint64_t EvalImpl(const Env& env) const = 0;
   virtual bool EqualToImpl(const Expr& other) const = 0;
@@ -111,6 +121,10 @@ class Expr : public std::enable_shared_from_this<Expr> {
 
   bool is_simplified_;
   std::shared_ptr<Expr> simplified_;
+
+  mutable bool is_eval_cached_;
+  mutable uint64_t x_cache_;
+  mutable uint64_t eval_cache_;
 
   DISALLOW_COPY_AND_ASSIGN(Expr);
 };
@@ -914,6 +928,15 @@ std::shared_ptr<Expr> BuildFoldSimplified(const FoldExpr& expr) {
   std::shared_ptr<Expr> simplified_value = expr.value()->simplified();
   std::shared_ptr<Expr> simplified_init_value = expr.init_value()->simplified();
   std::shared_ptr<Expr> simplified_body = expr.body()->simplified();
+
+  if (!simplified_body->in_fold()) {
+    return simplified_body;
+  }
+
+  IdExpr::Name name;
+  if (MatchId(*simplified_body, &name) && name == IdExpr::Name::Z) {
+    return simplified_init_value;
+  }
 
   if (expr.value() == simplified_value &&
       expr.init_value() == simplified_init_value &&
