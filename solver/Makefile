@@ -26,7 +26,7 @@ batch_evaluate: batch_evaluate.cc expr.h expr_list.h parser.h
 unittest: unittest.cc test_eval.cc libgtest.a expr.h expr_list.h parser.h
 	$(CXX) $(filter %.cc, $+) $(filter %.a, $+) $(TEST_CXXFLAGS) -o $@
 
-simplify_unittest: simplify_unittest.cc libgtest.a expr.h expr_list.h cluster.h simplify.h
+simplify_unittest: simplify_unittest.cc libgtest.a expr.h expr_list.h cluster.h simplify.h parser.h
 	$(CXX) $(filter %.cc, $+) $(filter %.a, $+) $(TEST_CXXFLAGS) -o $@
 
 genall_unittest: genall_unittest.cc libgtest.a expr.h expr_list.h expr_list_old.h

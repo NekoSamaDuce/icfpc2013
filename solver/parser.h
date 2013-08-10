@@ -128,6 +128,9 @@ std::shared_ptr<Expr> ParseInternal(std::istream* is, const ParseEnv& env) {
 std::shared_ptr<Expr> Parse(const std::string& str) {
   std::istringstream is(str);
   ParseEnv env;
+  env.x = "x";
+  env.y = "y";
+  env.z = "z";
   return ParseInternal(&is, env);
 }
 
