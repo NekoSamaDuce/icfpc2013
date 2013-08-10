@@ -1257,6 +1257,19 @@ std::shared_ptr<Expr> BuildAndSimplified(const BinaryOpExpr& expr) {
     return simplified_arg1;
   }
 
+  // (and (not X) X) -> 0
+  std::shared_ptr<Expr> nested_arg;
+  if (MatchUnaryOp(*simplified_arg1, UnaryOpExpr::Type::NOT, &nested_arg) &&
+      nested_arg->EqualTo(*simplified_arg2)) {
+    return ConstantExpr::Create(0);
+  }
+
+  // (and X (not X)) -> 0
+  if (MatchUnaryOp(*simplified_arg2, UnaryOpExpr::Type::NOT, &nested_arg) &&
+      nested_arg->EqualTo(*simplified_arg1)) {
+    return ConstantExpr::Create(0);
+  }
+
   // Constant folding.
   uint64_t value1, value2;
   if (MatchConstant(*simplified_arg1, &value1) && MatchConstant(*simplified_arg2, &value2)) {
@@ -1320,6 +1333,19 @@ std::shared_ptr<Expr> BuildOrSimplified(const BinaryOpExpr& expr) {
     return ConstantExpr::Create(value1 | value2);
   }
 
+  // (or (not X) X) -> 0xFFFFFFFFFFFFFFFF
+  std::shared_ptr<Expr> nested_arg;
+  if (MatchUnaryOp(*simplified_arg1, UnaryOpExpr::Type::NOT, &nested_arg) &&
+      nested_arg->EqualTo(*simplified_arg2)) {
+    return ConstantExpr::Create(0xFFFFFFFFFFFFFFFF);
+  }
+
+  // (or X (not X)) -> 0xFFFFFFFFFFFFFFFF
+  if (MatchUnaryOp(*simplified_arg2, UnaryOpExpr::Type::NOT, &nested_arg) &&
+      nested_arg->EqualTo(*simplified_arg1)) {
+    return ConstantExpr::Create(0xFFFFFFFFFFFFFFFF);
+  }
+
   int cmp = simplified_arg1->CompareTo(*simplified_arg2);
 
   // (or X X) -> X
@@ -1347,6 +1373,19 @@ std::shared_ptr<Expr> BuildXorSimplified(const BinaryOpExpr& expr) {
   int cmp = simplified_arg1->CompareTo(*simplified_arg2);
   if (cmp == 0) {
     return ConstantExpr::Create(0);
+  }
+
+  // (xor (not X) X) -> 0xFFFFFFFFFFFFFFFF
+  std::shared_ptr<Expr> nested_arg;
+  if (MatchUnaryOp(*simplified_arg1, UnaryOpExpr::Type::NOT, &nested_arg) &&
+      nested_arg->EqualTo(*simplified_arg2)) {
+    return ConstantExpr::Create(0xFFFFFFFFFFFFFFFF);
+  }
+
+  // (xor X (not X)) -> 0xFFFFFFFFFFFFFFFF
+  if (MatchUnaryOp(*simplified_arg2, UnaryOpExpr::Type::NOT, &nested_arg) &&
+      nested_arg->EqualTo(*simplified_arg1)) {
+    return ConstantExpr::Create(0xFFFFFFFFFFFFFFFF);
   }
 
   // Constant folding.
@@ -1402,6 +1441,19 @@ std::shared_ptr<Expr> BuildPlusSimplified(const BinaryOpExpr& expr) {
   if (MatchConstant(*simplified_arg1, &value1) &&
       MatchConstant(*simplified_arg2, &value2)) {
     return ConstantExpr::Create(value1 + value2);
+  }
+
+  // (plus (not X) X) -> 0xFFFFFFFFFFFFFFFF
+  std::shared_ptr<Expr> nested_arg;
+  if (MatchUnaryOp(*simplified_arg1, UnaryOpExpr::Type::NOT, &nested_arg) &&
+      nested_arg->EqualTo(*simplified_arg2)) {
+    return ConstantExpr::Create(0xFFFFFFFFFFFFFFFF);
+  }
+
+  // (plus X (not X)) -> 0xFFFFFFFFFFFFFFFF
+  if (MatchUnaryOp(*simplified_arg2, UnaryOpExpr::Type::NOT, &nested_arg) &&
+      nested_arg->EqualTo(*simplified_arg1)) {
+    return ConstantExpr::Create(0xFFFFFFFFFFFFFFFF);
   }
 
   // (plus 0 X) -> X
