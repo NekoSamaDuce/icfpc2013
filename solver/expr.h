@@ -186,6 +186,11 @@ class ConstantExpr : public Expr {
     return instance;
   }
 
+  static std::shared_ptr<ConstantExpr> CreateFull() {
+    static std::shared_ptr<ConstantExpr> instance(new ConstantExpr(~((uint64_t)0)));
+    return instance;
+  }
+
   uint64_t value() const { return value_; }
 
  protected:
