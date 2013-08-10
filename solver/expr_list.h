@@ -7,24 +7,6 @@
 
 namespace icfpc {
 
-class KeyExpr : public Expr {
- public:
-  KeyExpr(std::size_t depth) : Expr(static_cast<OpType>(-1), 0, depth, false, false) {
-  }
-
- protected:
-  virtual void Output(std::ostream*) const {}
-  virtual uint64_t EvalImpl(const Env& e) const { return 0; }
-  virtual bool EqualToImpl(const Expr& e) const { return false; }
-  virtual int CompareToImpl(const Expr& e) const { return 0; }
-};
-
-struct DepthComp {
-  bool operator()(const std::shared_ptr<Expr>& e1, const std::shared_ptr<Expr>& e2) {
-    return e1->depth() < e2->depth();
-  }
-};
-
 std::vector<std::shared_ptr<Expr> > ListExprDepth1(int op_type_set) {
   std::vector<std::shared_ptr<Expr> > result = {
     ConstantExpr::CreateZero(),
