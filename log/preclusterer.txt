@@ -1,0 +1,171 @@
+2013-08-11 02:24:03 INFO [preclusterer.py:115] start: FxLntTuvpJfBZ9sc1ACH70rH 12 if0,not,plus,shr4,xor
+2013-08-11 02:24:03 INFO [preclusterer.py:115] start: GjghuAUSEEpt11CuWksGtZc7 12 fold,not,plus,shr4
+2013-08-11 02:24:03 INFO [preclusterer.py:115] start: HverCz9nb3NbaEZw7uKXt8nW 12 and,if0,not,shr4
+2013-08-11 02:24:03 INFO [preclusterer.py:115] start: Kpklsw0AWBhZr79TfqxquxGU 12 and,if0,plus,shl1,shr4
+2013-08-11 02:24:03 INFO [preclusterer.py:115] start: JgsGV8yAWc29tXRNIKBNJsrI 12 if0,not,or,shr16,shr4,xor
+2013-08-11 02:24:03 INFO [preclusterer.py:115] start: ODHN2jTXbulndaCaCdUdoG35 12 and,fold,not,shr16,xor
+2013-08-11 02:24:03 INFO [preclusterer.py:115] start: NPDJzI2ic3Wex4WtCkMBabR4 12 and,if0,plus,shl1,shr4
+2013-08-11 02:24:03 INFO [preclusterer.py:115] start: UE2LxJzgpxd1u24QsgHx7dvB 12 fold,plus,shl1,shr4,xor
+2013-08-11 02:24:03 INFO [preclusterer.py:115] start: WImbt5XkmcrwTeeBALvJmNmm 12 and,fold,shl1,shr4,xor
+2013-08-11 02:24:11 INFO [preclusterer.py:120] success: HverCz9nb3NbaEZw7uKXt8nW 12 and,if0,not,shr4 => 186649,2096122,107914176
+2013-08-11 02:24:11 INFO [preclusterer.py:115] start: b9mnZJPMNHhUOGBIUKSl7Mj2 12 and,if0,not,or,shr1,shr4
+2013-08-11 02:24:16 INFO [preclusterer.py:120] success: GjghuAUSEEpt11CuWksGtZc7 12 fold,not,plus,shr4 => 169798,1901786,173542090
+2013-08-11 02:24:16 INFO [preclusterer.py:115] start: bEdAUBXDqZnACPCFEp0iHqAk 12 fold,not,plus,shr16,xor
+2013-08-11 02:24:21 INFO [preclusterer.py:120] success: ODHN2jTXbulndaCaCdUdoG35 12 and,fold,not,shr16,xor => 260904,3522613,45949138
+2013-08-11 02:24:21 INFO [preclusterer.py:115] start: cb2SiT3d8tT1BBluSyy8YEmf 12 fold,not,plus,shl1,shr16,shr4
+2013-08-11 02:24:31 INFO [preclusterer.py:120] success: WImbt5XkmcrwTeeBALvJmNmm 12 and,fold,shl1,shr4,xor => 391069,4635214,224820018
+2013-08-11 02:24:31 INFO [preclusterer.py:115] start: daF76OCcFAAZKdLnct2zTBIR 12 fold,not,plus,shr1,shr16
+2013-08-11 02:24:42 INFO [preclusterer.py:120] success: Kpklsw0AWBhZr79TfqxquxGU 12 and,if0,plus,shl1,shr4 => 789767,8368074,566953564
+2013-08-11 02:24:42 INFO [preclusterer.py:115] start: hCnKQnn5nms8y3Nz7Ga63PFC 12 fold,not,or,plus,shr4
+2013-08-11 02:24:44 INFO [preclusterer.py:120] success: FxLntTuvpJfBZ9sc1ACH70rH 12 if0,not,plus,shr4,xor => 806441,8898472,609033752
+2013-08-11 02:24:44 INFO [preclusterer.py:115] start: hhaJtbjsPddNQa2XFqSBGvsb 12 if0,not,plus,shl1
+2013-08-11 02:24:45 INFO [preclusterer.py:120] success: UE2LxJzgpxd1u24QsgHx7dvB 12 fold,plus,shl1,shr4,xor => 570664,6197881,545784411
+2013-08-11 02:24:45 INFO [preclusterer.py:115] start: j9oBoshaWwSBEkHzDe6TB4JN 12 if0,plus,shr1,xor
+2013-08-11 02:24:49 INFO [preclusterer.py:120] success: bEdAUBXDqZnACPCFEp0iHqAk 12 fold,not,plus,shr16,xor => 459717,5464638,300983996
+2013-08-11 02:24:49 INFO [preclusterer.py:115] start: kOTtgViyDIuHFkHlADlAV7bo 12 and,if0,shl1,shr4,xor
+2013-08-11 02:24:50 INFO [preclusterer.py:120] success: j9oBoshaWwSBEkHzDe6TB4JN 12 if0,plus,shr1,xor => 101469,1129969,61488019
+2013-08-11 02:24:50 INFO [preclusterer.py:115] start: mEkPDY6rQ3YyP4nD7yP3SzMZ 12 if0,not,or,shr16,shr4
+2013-08-11 02:24:53 INFO [preclusterer.py:115] start: L7x6AVxWCtaeKChk5T2Dt16s 12 and,if0,plus,shr1,shr16,shr4
+2013-08-11 02:25:03 INFO [preclusterer.py:120] success: hhaJtbjsPddNQa2XFqSBGvsb 12 if0,not,plus,shl1 => 423653,4957057,177662166
+2013-08-11 02:25:03 INFO [preclusterer.py:115] start: nBD1ccL67qpuDh48Zyzx4qz7 12 if0,plus,shl1,shr1,shr16,xor
+2013-08-11 02:25:19 INFO [preclusterer.py:120] success: kOTtgViyDIuHFkHlADlAV7bo 12 and,if0,shl1,shr4,xor => 629221,6884667,374961325
+2013-08-11 02:25:19 INFO [preclusterer.py:115] start: q3zFsUqhSCB7lvCA4RAmGOiN 12 fold,if0,or,shr16
+2013-08-11 02:25:24 INFO [preclusterer.py:120] success: hCnKQnn5nms8y3Nz7Ga63PFC 12 fold,not,or,plus,shr4 => 543357,6041203,547874778
+2013-08-11 02:25:24 INFO [preclusterer.py:115] start: qO6AXQBnV9qDoAaTtGojB2VU 12 fold,or,shr16,shr4
+2013-08-11 02:25:25 INFO [preclusterer.py:120] success: q3zFsUqhSCB7lvCA4RAmGOiN 12 fold,if0,or,shr16 => 83071,1186628,8494796
+2013-08-11 02:25:25 INFO [preclusterer.py:115] start: rhDCnbDx3GkymunXfTWHszIK 12 fold,not,or,shr16,xor
+2013-08-11 02:25:26 INFO [preclusterer.py:115] start: STZSgQV8MQiCUwOXMMIw6RYb 12 if0,plus,shr1,xor
+2013-08-11 02:25:26 INFO [preclusterer.py:120] success: STZSgQV8MQiCUwOXMMIw6RYb 12 if0,plus,shr1,xor => 101469,1129969,61488019
+2013-08-11 02:25:26 INFO [preclusterer.py:115] start: ryDB0XXGz0EPlKDlBEsYOtg9 12 if0,plus,shl1,shr1,shr4
+2013-08-11 02:25:27 INFO [preclusterer.py:120] success: qO6AXQBnV9qDoAaTtGojB2VU 12 fold,or,shr16,shr4 => 48152,666793,8373722
+2013-08-11 02:25:27 INFO [preclusterer.py:115] start: sxUeBdrZDzURw6yPmNEBeq5S 12 if0,or,plus,shr1
+2013-08-11 02:25:31 INFO [preclusterer.py:120] success: sxUeBdrZDzURw6yPmNEBeq5S 12 if0,or,plus,shr1 => 90451,1016152,52633131
+2013-08-11 02:25:31 INFO [preclusterer.py:115] start: vgPkUOuRerRVpBJWuZAll14q 12 fold,not,shl1,shr1,xor
+2013-08-11 02:25:33 INFO [preclusterer.py:120] success: mEkPDY6rQ3YyP4nD7yP3SzMZ 12 if0,not,or,shr16,shr4 => 783182,8449804,629897384
+2013-08-11 02:25:33 INFO [preclusterer.py:115] start: yuYKAf5PI6m59ThBFvyT0DAz 12 fold,not,shr1,xor
+2013-08-11 02:25:37 INFO [preclusterer.py:115] start: LiInXWQnHXGdI65WqGk8IgxM 12 and,if0,not,shr1,shr16
+2013-08-11 02:25:37 INFO [preclusterer.py:120] success: L7x6AVxWCtaeKChk5T2Dt16s 12 and,if0,plus,shr1,shr16,shr4 => 1603391,16556731,1161818538
+2013-08-11 02:25:37 INFO [preclusterer.py:120] success: JgsGV8yAWc29tXRNIKBNJsrI 12 if0,not,or,shr16,shr4,xor => 1812907,20365787,1194150051
+2013-08-11 02:25:37 INFO [preclusterer.py:120] success: NPDJzI2ic3Wex4WtCkMBabR4 12 and,if0,plus,shl1,shr4 => 789767,8368074,566953564
+2013-08-11 02:25:37 INFO [preclusterer.py:120] success: LiInXWQnHXGdI65WqGk8IgxM 12 and,if0,not,shr1,shr16 => 933588,9949631,737275049
+2013-08-11 02:25:37 INFO [preclusterer.py:115] start: yv0QbEFjUMLuPnAC0mSifRfV 12 if0,not,shl1,shr1,shr16,shr4,xor
+2013-08-11 02:25:37 INFO [preclusterer.py:115] start: 3E4MGjdP5kNABWUYIrwzEclX 13 and,fold,not,plus,shl1,shr4
+2013-08-11 02:25:37 INFO [preclusterer.py:115] start: 7sBV2oxIjoCnNyF9PnTkEWb7 13 fold,not,plus,shl1,shr4,xor
+2013-08-11 02:25:38 INFO [preclusterer.py:120] success: yuYKAf5PI6m59ThBFvyT0DAz 12 fold,not,shr1,xor => 75973,996855,33533897
+2013-08-11 02:25:38 INFO [preclusterer.py:115] start: 9RCxFJqvRCc0SVwrAoeuPm3p 13 if0,or,plus,shr1,shr16,shr4
+2013-08-11 02:25:40 INFO [preclusterer.py:120] success: daF76OCcFAAZKdLnct2zTBIR 12 fold,not,plus,shr1,shr16 => 869862,9065618,1050321914
+2013-08-11 02:25:40 INFO [preclusterer.py:115] start: AR2buxSs0A6AhMMKi50YZwPD 13 fold,or,shl1,shr4
+2013-08-11 02:25:44 INFO [preclusterer.py:120] success: rhDCnbDx3GkymunXfTWHszIK 12 fold,not,or,shr16,xor => 267851,3596258,56573349
+2013-08-11 02:25:44 INFO [preclusterer.py:115] start: ArBdDKEF64sZ42plLPGD11mP 13 fold,not,plus,shr1,xor
+2013-08-11 02:26:03 INFO [preclusterer.py:120] success: b9mnZJPMNHhUOGBIUKSl7Mj2 12 and,if0,not,or,shr1,shr4 => 2007277,22066824,1524150135
+2013-08-11 02:26:03 INFO [preclusterer.py:115] start: DgUya2dy2MOXkVSmK93z1mBn 13 and,if0,plus,shr1,shr16,xor
+2013-08-11 02:26:20 INFO [preclusterer.py:120] success: vgPkUOuRerRVpBJWuZAll14q 12 fold,not,shl1,shr1,xor => 688197,8746104,267747560
+2013-08-11 02:26:20 INFO [preclusterer.py:115] start: EmmmlqdzEYv4xDkAAtLxeYEe 13 if0,plus,shr1,shr16,shr4
+2013-08-11 02:26:22 INFO [preclusterer.py:120] success: AR2buxSs0A6AhMMKi50YZwPD 13 fold,or,shl1,shr4 => 477644,6418642,255644989
+2013-08-11 02:26:22 INFO [preclusterer.py:115] start: FK36csB0hNuaCdV1rKoxUoSE 13 and,if0,or,plus,shr4
+2013-08-11 02:26:44 INFO [preclusterer.py:120] success: ryDB0XXGz0EPlKDlBEsYOtg9 12 if0,plus,shl1,shr1,shr4 => 1516023,17066812,898216410
+2013-08-11 02:26:44 INFO [preclusterer.py:115] start: G1LScdDFDUKBgBKVMgJXvXn8 13 fold,not,plus,shl1
+2013-08-11 02:26:59 INFO [preclusterer.py:120] success: FK36csB0hNuaCdV1rKoxUoSE 13 and,if0,or,plus,shr4 => 845206,10441672,384599598
+2013-08-11 02:26:59 INFO [preclusterer.py:115] start: GYV4fybtz3N6798cKMmKOfgH 13 if0,not,shl1,shr16,shr4,xor
+2013-08-11 02:27:33 INFO [preclusterer.py:120] success: G1LScdDFDUKBgBKVMgJXvXn8 13 fold,not,plus,shl1 => 605405,8302186,265764056
+2013-08-11 02:27:33 INFO [preclusterer.py:115] start: J1lKxY9TnqHBl3dw9Im4sxTd 13 fold,if0,shr4,xor
+2013-08-11 02:27:58 INFO [preclusterer.py:120] success: nBD1ccL67qpuDh48Zyzx4qz7 12 if0,plus,shl1,shr1,shr16,xor => 3270268,36132173,2086858041
+2013-08-11 02:27:58 INFO [preclusterer.py:115] start: Jl4O70IVDcjBBJ8UJAy1rmGi 13 fold,if0,or,shl1
+2013-08-11 02:28:04 INFO [preclusterer.py:120] success: J1lKxY9TnqHBl3dw9Im4sxTd 13 fold,if0,shr4,xor => 423068,6415619,54210844
+2013-08-11 02:28:04 INFO [preclusterer.py:115] start: NmrZPboMw9LBavNXmhnDOtil 13 and,fold,plus,shr4
+2013-08-11 02:28:07 INFO [preclusterer.py:118] fail: GYV4fybtz3N6798cKMmKOfgH 13 if0,not,shl1,shr16,shr4,xor
+2013-08-11 02:28:07 INFO [preclusterer.py:115] start: OK3rNjJTieBDhc4xR0AXGzco 13 and,fold,shl1,xor
+2013-08-11 02:28:40 INFO [preclusterer.py:120] success: NmrZPboMw9LBavNXmhnDOtil 13 and,fold,plus,shr4 => 274326,3633802,128203099
+2013-08-11 02:28:40 INFO [preclusterer.py:115] start: QivNv185klfe2PnnOsHvdu9g 13 fold,or,shr1,xor
+2013-08-11 02:28:42 INFO [preclusterer.py:120] success: OK3rNjJTieBDhc4xR0AXGzco 13 and,fold,shl1,xor => 275546,3841213,87743732
+2013-08-11 02:28:42 INFO [preclusterer.py:115] start: TK0Va1dUh26DvQei0BWzSxmj 13 fold,not,shr1,shr16,shr4,xor
+2013-08-11 02:28:59 INFO [preclusterer.py:120] success: Jl4O70IVDcjBBJ8UJAy1rmGi 13 fold,if0,or,shl1 => 620147,9158988,128503254
+2013-08-11 02:28:59 INFO [preclusterer.py:115] start: TlbuaMFWVHTnGLO5vbIzG0Ul 13 if0,not,or,shl1,shr16
+2013-08-11 02:29:03 INFO [preclusterer.py:120] success: QivNv185klfe2PnnOsHvdu9g 13 fold,or,shr1,xor => 175189,2506580,58049559
+2013-08-11 02:29:03 INFO [preclusterer.py:115] start: Wrir1OEB7MtV24rBuJHd6phN 13 fold,if0,plus,shl1,shr4
+2013-08-11 02:30:23 INFO [preclusterer.py:120] success: ArBdDKEF64sZ42plLPGD11mP 13 fold,not,plus,shr1,xor => 2101395,26889530,1613113829
+2013-08-11 02:30:23 INFO [preclusterer.py:115] start: ZPdGL0EuUfAiIfBMcAMl2105 13 if0,not,plus,shr1,shr16,shr4
+2013-08-11 02:30:38 INFO [preclusterer.py:118] fail: 3E4MGjdP5kNABWUYIrwzEclX 13 and,fold,not,plus,shl1,shr4
+2013-08-11 02:30:38 INFO [preclusterer.py:115] start: ZjE7BJzWlLLsAUd6w7jUVJ69 13 and,if0,not,or,shr16,shr4
+2013-08-11 02:30:38 INFO [preclusterer.py:118] fail: 7sBV2oxIjoCnNyF9PnTkEWb7 13 fold,not,plus,shl1,shr4,xor
+2013-08-11 02:30:38 INFO [preclusterer.py:115] start: cjTGSS5AVjOIdQCbN8una3my 13 fold,if0,shr1,xor
+2013-08-11 02:31:12 INFO [preclusterer.py:120] success: EmmmlqdzEYv4xDkAAtLxeYEe 13 if0,plus,shr1,shr16,shr4 => 2951567,35112331,1755642272
+2013-08-11 02:31:12 INFO [preclusterer.py:115] start: dBBuREfM1FNLJBShSbBSKsvB 13 fold,not,or,plus,shl1,shr4
+2013-08-11 02:31:16 INFO [preclusterer.py:120] success: cjTGSS5AVjOIdQCbN8una3my 13 fold,if0,shr1,xor => 426308,6422099,63844838
+2013-08-11 02:31:16 INFO [preclusterer.py:115] start: dD3l0RBirrXUIiAnet9lFgoz 13 and,if0,not,shl1,shr4
+2013-08-11 02:33:42 INFO [preclusterer.py:118] fail: TK0Va1dUh26DvQei0BWzSxmj 13 fold,not,shr1,shr16,shr4,xor
+2013-08-11 02:33:42 INFO [preclusterer.py:115] start: f9dIAVKPVNVrpXkWKyyCyXFS 13 and,if0,not,plus,shr4
+2013-08-11 02:35:31 INFO [preclusterer.py:120] success: DgUya2dy2MOXkVSmK93z1mBn 13 and,if0,plus,shr1,shr16,xor => 4319008,51247623,2536172675
+2013-08-11 02:35:31 INFO [preclusterer.py:115] start: gZbD0yWz4VzUTKzCS1mFAm6z 13 and,if0,plus,shr1,shr16
+2013-08-11 02:35:53 INFO [preclusterer.py:120] success: ZjE7BJzWlLLsAUd6w7jUVJ69 13 and,if0,not,or,shr16,shr4 => 519929,6897919,75889959
+2013-08-11 02:35:53 INFO [preclusterer.py:115] start: hI0b4mPrbmKugY7HBwzg13iC 13 if0,or,plus,shr1,shr16
+2013-08-11 02:35:56 INFO [preclusterer.py:118] fail: dBBuREfM1FNLJBShSbBSKsvB 13 fold,not,or,plus,shl1,shr4
+2013-08-11 02:35:56 INFO [preclusterer.py:115] start: iuryOaChsbLyAd7IHoEsggCr 13 and,if0,or,shl1,shr1,shr16
+2013-08-11 02:35:57 INFO [preclusterer.py:120] success: Wrir1OEB7MtV24rBuJHd6phN 13 fold,if0,plus,shl1,shr4 => 3293467,44752040,1359321899
+2013-08-11 02:35:57 INFO [preclusterer.py:115] start: kMC0p3Jaqh5HrkAAtVS1wunc 13 and,if0,shl1,shr1,xor
+2013-08-11 02:36:21 INFO [preclusterer.py:120] success: cb2SiT3d8tT1BBluSyy8YEmf 12 fold,not,plus,shl1,shr16,shr4 => 4121491,43914917,3894671897
+2013-08-11 02:36:21 INFO [preclusterer.py:115] start: kejUBAyHZnhV0kPBU7eDVASq 13 and,fold,plus,shr1,shr4
+2013-08-11 02:36:30 INFO [preclusterer.py:120] success: TlbuaMFWVHTnGLO5vbIzG0Ul 13 if0,not,or,shl1,shr16 => 3910499,47660459,1803498207
+2013-08-11 02:36:30 INFO [preclusterer.py:115] start: mVa8pti3KAAw67GOAVfzPBno 13 if0,or,plus,shl1,shr4
+2013-08-11 02:36:56 INFO [preclusterer.py:120] success: gZbD0yWz4VzUTKzCS1mFAm6z 13 and,if0,plus,shr1,shr16 => 1822208,21715559,921741275
+2013-08-11 02:36:56 INFO [preclusterer.py:115] start: mqGorw2m1uTtEdxkrAoBfYph 13 fold,shl1,shr1,shr4,xor
+2013-08-11 02:37:04 INFO [preclusterer.py:120] success: 9RCxFJqvRCc0SVwrAoeuPm3p 13 if0,or,plus,shr1,shr16,shr4 => 6418350,74997163,4479372479
+2013-08-11 02:37:04 INFO [preclusterer.py:115] start: pTbUZtq1lamafq70uhYnt9kJ 13 if0,not,plus,shl1,shr1,shr16
+2013-08-11 02:37:05 INFO [preclusterer.py:120] success: f9dIAVKPVNVrpXkWKyyCyXFS 13 and,if0,not,plus,shr4 => 3684171,44679960,2310520263
+2013-08-11 02:37:05 INFO [preclusterer.py:115] start: qB5jyNvD2YKCqAOfryevfc3v 13 and,fold,plus,shr1,xor
+2013-08-11 02:37:05 INFO [preclusterer.py:120] success: dD3l0RBirrXUIiAnet9lFgoz 13 and,if0,not,shl1,shr4 => 4723340,57704595,2283960607
+2013-08-11 02:37:05 INFO [preclusterer.py:115] start: qxTY0wAtUjkAHvG0F6Qmo8Za 13 fold,not,or,shr16,shr4,xor
+2013-08-11 02:37:20 INFO [preclusterer.py:120] success: hI0b4mPrbmKugY7HBwzg13iC 13 if0,or,plus,shr1,shr16 => 1767458,21288725,1030936246
+2013-08-11 02:37:20 INFO [preclusterer.py:115] start: r798M5kjDtc597KTqF2fVd7t 13 fold,or,shl1,shr1
+2013-08-11 02:37:44 INFO [preclusterer.py:120] success: kMC0p3Jaqh5HrkAAtVS1wunc 13 and,if0,shl1,shr1,xor => 2493045,32632891,608802048
+2013-08-11 02:37:44 INFO [preclusterer.py:115] start: rqj3maHnBR4zrM5hn6cq5Xuc 13 if0,not,or,plus,shr4,xor
+2013-08-11 02:37:57 INFO [preclusterer.py:120] success: r798M5kjDtc597KTqF2fVd7t 13 fold,or,shl1,shr1 => 455186,6422179,155730498
+2013-08-11 02:37:57 INFO [preclusterer.py:115] start: s2CVChPCRAd011h6QhwkJEJb 13 and,if0,plus,shl1,shr4,xor
+2013-08-11 02:38:09 INFO [preclusterer.py:120] success: kejUBAyHZnhV0kPBU7eDVASq 13 and,fold,plus,shr1,shr4 => 1347095,16948320,854301692
+2013-08-11 02:38:09 INFO [preclusterer.py:115] start: v7kcXff96IXr96qY3dew4Otg 13 and,fold,plus,shl1,xor
+2013-08-11 02:38:12 INFO [preclusterer.py:120] success: qB5jyNvD2YKCqAOfryevfc3v 13 and,fold,plus,shr1,xor => 831149,10793767,481727748
+2013-08-11 02:38:12 INFO [preclusterer.py:115] start: wNqEscy5X9O4p2rodMgBIqfL 13 if0,or,plus,shl1,shr16
+2013-08-11 02:38:25 INFO [preclusterer.py:118] fail: pTbUZtq1lamafq70uhYnt9kJ 13 if0,not,plus,shl1,shr1,shr16
+2013-08-11 02:38:25 INFO [preclusterer.py:115] start: 24jeIhl8pwIqTrPao60VEsUj 14 if0,not,or,shr1
+2013-08-11 02:39:27 INFO [preclusterer.py:120] success: v7kcXff96IXr96qY3dew4Otg 13 and,fold,plus,shl1,xor => 1015667,13555291,453845674
+2013-08-11 02:39:27 INFO [preclusterer.py:115] start: 37QkPN8jAqWAjyDziNBPBykU 14 if0,not,or,plus,shr1,shr16
+2013-08-11 02:39:36 INFO [preclusterer.py:120] success: mVa8pti3KAAw67GOAVfzPBno 13 if0,or,plus,shl1,shr4 => 3487738,41561829,2362728128
+2013-08-11 02:39:36 INFO [preclusterer.py:115] start: 3BQjlfe3AxKzgqlO78oAjkQS 14 and,if0,not,plus,shr1,shr16
+2013-08-11 02:40:05 INFO [preclusterer.py:120] success: mqGorw2m1uTtEdxkrAoBfYph 13 fold,shl1,shr1,shr4,xor => 2326469,32143610,829244673
+2013-08-11 02:40:05 INFO [preclusterer.py:115] start: 4F2DIFIpBf1cvZ24CMgSNka9 14 fold,if0,not,or,shr1,shr16
+2013-08-11 02:40:11 INFO [preclusterer.py:120] success: 24jeIhl8pwIqTrPao60VEsUj 14 if0,not,or,shr1 => 2315364,32419326,694847074
+2013-08-11 02:40:11 INFO [preclusterer.py:115] start: 6zPie48Khx0Byo2elJCouQyy 14 and,fold,not,or,shl1,xor
+2013-08-11 02:40:55 INFO [preclusterer.py:118] fail: 4F2DIFIpBf1cvZ24CMgSNka9 14 fold,if0,not,or,shr1,shr16
+2013-08-11 02:40:55 INFO [preclusterer.py:115] start: 8edaN7E8hP6MQc0lLIxrh3k7 14 and,if0,or,shr1,shr16,xor
+2013-08-11 02:40:57 INFO [preclusterer.py:118] fail: iuryOaChsbLyAd7IHoEsggCr 13 and,if0,or,shl1,shr1,shr16
+2013-08-11 02:40:57 INFO [preclusterer.py:115] start: AJTR8OVkXPEx3etyNjFR1Rgo 14 fold,not,or,shl1,shr4,xor
+2013-08-11 02:41:02 INFO [preclusterer.py:120] success: wNqEscy5X9O4p2rodMgBIqfL 13 if0,or,plus,shl1,shr16 => 3387427,40812294,1894644202
+2013-08-11 02:41:02 INFO [preclusterer.py:115] start: AXVtB1BfJHpJJ0OY21i9ZEWD 14 and,if0,not,or,plus,shr1,shr4
+2013-08-11 02:41:52 INFO [preclusterer.py:118] fail: 37QkPN8jAqWAjyDziNBPBykU 14 if0,not,or,plus,shr1,shr16
+2013-08-11 02:41:52 INFO [preclusterer.py:115] start: AeTxcFsaMOaYqrN4AN14u7TH 14 and,if0,not,or,shr1,shr4
+2013-08-11 02:41:58 INFO [preclusterer.py:118] fail: AXVtB1BfJHpJJ0OY21i9ZEWD 14 and,if0,not,or,plus,shr1,shr4
+2013-08-11 02:41:58 INFO [preclusterer.py:115] start: AqbtV0VaL4dWqvirc3gWAoD1 14 and,fold,if0,shr4,xor
+2013-08-11 02:42:05 INFO [preclusterer.py:118] fail: qxTY0wAtUjkAHvG0F6Qmo8Za 13 fold,not,or,shr16,shr4,xor
+2013-08-11 02:42:05 INFO [preclusterer.py:115] start: BYyIDpwojfObvvHjBUADdA8W 14 fold,if0,not,or,xor
+2013-08-11 02:42:07 INFO [preclusterer.py:118] fail: 3BQjlfe3AxKzgqlO78oAjkQS 14 and,if0,not,plus,shr1,shr16
+2013-08-11 02:42:07 INFO [preclusterer.py:115] start: CDSyMS612Z6Q4OpcEOLRL5PP 14 and,if0,not,shr1,shr4,xor
+2013-08-11 02:42:41 INFO [preclusterer.py:118] fail: BYyIDpwojfObvvHjBUADdA8W 14 fold,if0,not,or,xor
+2013-08-11 02:42:41 INFO [preclusterer.py:115] start: FECrA9R74iuKEX8iEZMl8juF 14 if0,not,plus,shr1,shr4,xor
+2013-08-11 02:43:26 INFO [preclusterer.py:118] fail: AeTxcFsaMOaYqrN4AN14u7TH 14 and,if0,not,or,shr1,shr4
+2013-08-11 02:43:26 INFO [preclusterer.py:115] start: GyNnUvKDlJB4Kiy2ND3E4ttu 14 fold,if0,or,plus,shl1
+2013-08-11 02:43:32 INFO [preclusterer.py:120] success: rqj3maHnBR4zrM5hn6cq5Xuc 13 if0,not,or,plus,shr4,xor => 4822096,59185750,2949547327
+2013-08-11 02:43:32 INFO [preclusterer.py:115] start: Kgibr5Cl4iniHgU6gFtuRYbR 14 and,if0,or,shl1,shr1,xor
+2013-08-11 02:43:43 INFO [preclusterer.py:120] success: s2CVChPCRAd011h6QhwkJEJb 13 and,if0,plus,shl1,shr4,xor => 5009283,59862893,2849595522
+2013-08-11 02:43:43 INFO [preclusterer.py:115] start: Lw0pQfie5BiUoDeXGWzch82s 14 if0,or,plus,shl1,xor
+2013-08-11 02:43:49 INFO [preclusterer.py:118] fail: CDSyMS612Z6Q4OpcEOLRL5PP 14 and,if0,not,shr1,shr4,xor
+2013-08-11 02:43:49 INFO [preclusterer.py:115] start: MVGaEWvQ5Wk9wYI7u0Ik9F4I 14 and,fold,not,plus,shr1,xor
+2013-08-11 02:45:55 INFO [preclusterer.py:118] fail: 8edaN7E8hP6MQc0lLIxrh3k7 14 and,if0,or,shr1,shr16,xor
+2013-08-11 02:45:55 INFO [preclusterer.py:115] start: NIhTy0KW4vKR9rdOmc7NROQ4 14 if0,plus,shr1,xor
+2013-08-11 02:46:52 INFO [preclusterer.py:120] success: NIhTy0KW4vKR9rdOmc7NROQ4 14 if0,plus,shr1,xor => 1349764,18442238,509671922
+2013-08-11 02:46:52 INFO [preclusterer.py:115] start: NS8C4rgCo2bMq3uUWbY6AjLY 14 fold,if0,shl1
+2013-08-11 02:47:57 INFO [preclusterer.py:120] success: Lw0pQfie5BiUoDeXGWzch82s 14 if0,or,plus,shl1,xor => 5797108,81031516,1675207897
+2013-08-11 02:47:57 INFO [preclusterer.py:115] start: UHQ4NWYLSuvtxNGfPSdrv35B 14 and,if0,or,plus,shr1,shr4
+2013-08-11 02:48:23 INFO [preclusterer.py:120] success: NS8C4rgCo2bMq3uUWbY6AjLY 14 fold,if0,shl1 => 1228084,20087630,131378680
+2013-08-11 02:48:23 INFO [preclusterer.py:115] start: VP4CkAsmRBXGRjUUSWieQLqT 14 fold,if0,plus,shl1,shr1,shr16
+2013-08-11 02:49:15 INFO [preclusterer.py:118] fail: VP4CkAsmRBXGRjUUSWieQLqT 14 fold,if0,plus,shl1,shr1,shr16
+2013-08-11 02:49:15 INFO [preclusterer.py:115] start: VUhDsBKzc46Xn7PlpUYNyAKh 14 and,if0,not,or,shl1,shr16
