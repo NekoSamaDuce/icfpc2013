@@ -67,6 +67,7 @@ class Expr {
   }
 
   bool EqualTo(const Expr& other) const {
+    if (this == &other) return true;
     if (op_type() != other.op_type()) return false;
     return EqualToImpl(other);
   }
