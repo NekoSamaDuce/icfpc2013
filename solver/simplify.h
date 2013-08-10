@@ -8,7 +8,7 @@
 
 namespace icfpc {
 
-std::shared_ptr<Expr> Simplify(std::shared_ptr<Expr>& expr) {
+std::shared_ptr<Expr> Simplify(std::shared_ptr<Expr> expr) {
   return expr->simplified();
 }
 
