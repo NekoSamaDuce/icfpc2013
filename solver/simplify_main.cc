@@ -10,7 +10,7 @@ using namespace icfpc;
 
 DEFINE_int32(size, -1, "Size of the expression");
 DEFINE_string(operators, "", "List of the operators");
-DEFINE_string(simplify, "each", "{no,each,global}");
+DEFINE_string(simplify, "global", "{no,each,global}");
 
 
 int main(int argc, char* argv[]) {
