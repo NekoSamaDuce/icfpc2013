@@ -187,6 +187,7 @@ class ConstantExpr : public Expr {
   static std::shared_ptr<ConstantExpr> Create(uint64_t value) {
     if (value == 0) return CreateZero();
     if (value == 1) return CreateOne();
+    if (value == 0xFFFFFFFFFFFFFFFFULL) return CreateFull();
     return std::make_shared<ConstantExpr>(value);
   }
 
@@ -701,6 +702,21 @@ bool MatchConstant(const Expr& expr, uint64_t* value) {
   return true;
 }
 
+bool MatchIf0(const Expr& expr,
+              std::shared_ptr<Expr>* cond,
+              std::shared_ptr<Expr>* then_body,
+              std::shared_ptr<Expr>* else_body) {
+  if (expr.op_type() != OpType::IF0) {
+    return false;
+  }
+
+  const If0Expr& if_expr = static_cast<const If0Expr&>(expr);
+  *cond = if_expr.cond();
+  *then_body = if_expr.then_body();
+  *else_body = if_expr.else_body();
+  return true;
+}
+
 bool MatchUnaryOp(const Expr& expr, UnaryOpExpr::Type type, std::shared_ptr<Expr>* arg) {
   if (expr.op_type() != UnaryOpExpr::ToOpType(type)) {
     return false;
@@ -720,6 +736,159 @@ bool MatchBinaryOp(const Expr& expr, BinaryOpExpr::Type type,
   *arg1 = bin_expr.arg1();
   *arg2 = bin_expr.arg2();
   return true;
+}
+
+uint64_t GetZeroBit(const Expr& expr);
+uint64_t GetOneBit(const Expr& expr);
+
+uint64_t GetZeroBit(const Expr& expr) {
+  uint64_t value;
+  if (MatchConstant(expr, &value)) {
+    return ~value;
+  }
+
+  std::shared_ptr<Expr> arg1, arg2;
+  if (MatchUnaryOp(expr, UnaryOpExpr::Type::NOT, &arg1)) {
+    return GetOneBit(*arg1);
+  }
+
+  if (MatchUnaryOp(expr, UnaryOpExpr::Type::SHL1, &arg1)) {
+    return (GetZeroBit(*arg1) << 1) | 1;
+  }
+
+  if (MatchUnaryOp(expr, UnaryOpExpr::Type::SHR1, &arg1)) {
+    return (GetZeroBit(*arg1) >> 1) | 0x8000000000000000ULL;
+  }
+
+  if (MatchUnaryOp(expr, UnaryOpExpr::Type::SHR4, &arg1)) {
+    return (GetZeroBit(*arg1) >> 4) | 0xF000000000000000ULL;
+  }
+
+  if (MatchUnaryOp(expr, UnaryOpExpr::Type::SHR16, &arg1)) {
+    return (GetZeroBit(*arg1) >> 16) | 0xFFFF000000000000ULL;
+  }
+
+  if (MatchBinaryOp(expr, BinaryOpExpr::Type::AND, &arg1, &arg2)) {
+    return (GetZeroBit(*arg1) | GetZeroBit(*arg2));
+  }
+
+  if (MatchBinaryOp(expr, BinaryOpExpr::Type::OR, &arg1, &arg2)) {
+    return (GetZeroBit(*arg1) & GetZeroBit(*arg2));
+  }
+
+  if (MatchBinaryOp(expr, BinaryOpExpr::Type::XOR, &arg1, &arg2)) {
+    return (GetZeroBit(*arg1) & GetZeroBit(*arg2)) |
+        (GetOneBit(*arg1) & GetOneBit(*arg2));
+  }
+
+  std::shared_ptr<Expr> cond;
+  if (MatchIf0(expr, &cond, &arg1, &arg2)) {
+    return GetZeroBit(*arg1) & GetZeroBit(*arg2);
+  }
+
+  // Unknown
+  return 0;
+}
+
+uint64_t GetOneBit(const Expr& expr) {
+  uint64_t value;
+  if (MatchConstant(expr, &value)) {
+    return value;
+  }
+
+  std::shared_ptr<Expr> arg1, arg2;
+  if (MatchUnaryOp(expr, UnaryOpExpr::Type::NOT, &arg1)) {
+    return GetZeroBit(*arg1);
+  }
+
+  if (MatchUnaryOp(expr, UnaryOpExpr::Type::SHL1, &arg1)) {
+    return (GetOneBit(*arg1) << 1);
+  }
+
+  if (MatchUnaryOp(expr, UnaryOpExpr::Type::SHR1, &arg1)) {
+    return (GetOneBit(*arg1) >> 1);
+  }
+
+  if (MatchUnaryOp(expr, UnaryOpExpr::Type::SHR4, &arg1)) {
+    return (GetOneBit(*arg1) >> 4);
+  }
+
+  if (MatchUnaryOp(expr, UnaryOpExpr::Type::SHR16, &arg1)) {
+    return (GetOneBit(*arg1) >> 16);
+  }
+
+  if (MatchBinaryOp(expr, BinaryOpExpr::Type::AND, &arg1, &arg2)) {
+    return (GetOneBit(*arg1) & GetOneBit(*arg2));
+  }
+
+  if (MatchBinaryOp(expr, BinaryOpExpr::Type::OR, &arg1, &arg2)) {
+    return (GetOneBit(*arg1) | GetOneBit(*arg2));
+  }
+
+  if (MatchBinaryOp(expr, BinaryOpExpr::Type::XOR, &arg1, &arg2)) {
+    return (GetZeroBit(*arg1) & GetOneBit(*arg2)) |
+        (GetOneBit(*arg1) & GetZeroBit(*arg2));
+  }
+
+  std::shared_ptr<Expr> cond;
+  if (MatchIf0(expr, &cond, &arg1, &arg2)) {
+    return GetOneBit(*arg1) & GetOneBit(*arg2);
+  }
+
+  // Unknown.
+  return 0;
+}
+
+bool HasZeroBitAlways(const Expr& expr);
+bool HasOneBitAlways(const Expr& expr);
+
+bool HasZeroBitAlways(const Expr& expr) {
+  switch (expr.op_type()) {
+    case OpType::SHL1:
+    case OpType::SHR1:
+    case OpType::SHR4:
+    case OpType::SHR16:
+      return true;
+    case OpType::IF0: {
+      const If0Expr& if_expr = static_cast<const If0Expr&>(expr);
+      return HasZeroBitAlways(*if_expr.then_body()) && HasZeroBitAlways(*if_expr.else_body());
+    }
+    default:
+      break;
+  }
+
+  std::shared_ptr<Expr> arg1, arg2;
+  if (MatchBinaryOp(expr, BinaryOpExpr::Type::AND, &arg1, &arg2)) {
+    return HasZeroBitAlways(*arg1) || HasZeroBitAlways(*arg2);
+  }
+
+  if (MatchUnaryOp(expr, UnaryOpExpr::Type::NOT, &arg1)) {
+    return HasOneBitAlways(*arg1);
+  }
+
+  return GetZeroBit(expr) != 0;
+}
+
+bool HasOneBitAlways(const Expr& expr) {
+  switch (expr.op_type()) {
+    case OpType::IF0: {
+      const If0Expr& if_expr = static_cast<const If0Expr&>(expr);
+      return HasOneBitAlways(*if_expr.then_body()) && HasOneBitAlways(*if_expr.else_body());
+    }
+    default:
+      break;
+  }
+
+  std::shared_ptr<Expr> arg1, arg2;
+  if (MatchBinaryOp(expr, BinaryOpExpr::Type::OR, &arg1, &arg2)) {
+    return HasOneBitAlways(*arg1) || HasOneBitAlways(*arg2);
+  }
+
+  if (MatchUnaryOp(expr, UnaryOpExpr::Type::NOT, &arg1)) {
+    return HasZeroBitAlways(*arg1);
+  }
+
+  return GetOneBit(expr) != 0;
 }
 
 std::shared_ptr<Expr> Substitute(const Expr& expr, IdExpr::Name name, uint64_t value);
@@ -862,11 +1031,8 @@ std::shared_ptr<Expr> BuildIf0Simplified(const If0Expr& expr) {
 
   // The value of cond can be changed, but trivially not 0.
   std::shared_ptr<Expr> arg1, arg2;
-  if (MatchBinaryOp(*simplified_cond, BinaryOpExpr::Type::OR, &arg1, &arg2)) {
-    if ((MatchConstant(*arg1, &value) && value != 0) ||
-        (MatchConstant(*arg2, &value) && value != 0)) {
-      return expr.else_body()->simplified();
-    }
+  if (HasOneBitAlways(*simplified_cond)) {
+    return expr.else_body()->simplified();
   }
 
   std::shared_ptr<Expr> simplified_then_body = expr.then_body()->simplified();
@@ -1055,8 +1221,25 @@ std::shared_ptr<Expr> BuildShl1Simplified(const UnaryOpExpr& expr) {
     return ConstantExpr::Create(value << 1);
   }
 
-  // TODO simplify binary op.
+  value = GetZeroBit(*simplified_arg);
+  if (((value << 1) | 1) == 0xFFFFFFFFFFFFFFFF) {
+    return ConstantExpr::Create(0);
+  }
+
   switch (simplified_arg->op_type())  {
+    case OpType::AND:
+    case OpType::OR:
+    case OpType::XOR: {
+      const BinaryOpExpr& bin_expr = static_cast<const BinaryOpExpr&>(*simplified_arg);
+      if (bin_expr.arg1()->op_type() == OpType::CONSTANT ||
+          bin_expr.arg2()->op_type() == OpType::CONSTANT) {
+        return BinaryOpExpr::Create(
+            bin_expr.type(),
+            UnaryOpExpr::Create(UnaryOpExpr::Type::SHL1, bin_expr.arg1()),
+            UnaryOpExpr::Create(UnaryOpExpr::Type::SHL1, bin_expr.arg2()))->simplified();
+      }
+      break;
+    }
     case OpType::IF0: {
       const If0Expr& if_expr = static_cast<const If0Expr&>(*simplified_arg);
       if (if_expr.then_body()->op_type() == OpType::CONSTANT ||
@@ -1089,18 +1272,30 @@ std::shared_ptr<Expr> BuildShr1Simplified(const UnaryOpExpr& expr) {
     return ConstantExpr::Create(value >> 1);
   }
 
+  value = GetZeroBit(*simplified_arg);
+  if (((value >> 1) | 0x8000000000000000) == 0xFFFFFFFFFFFFFFFF) {
+    return ConstantExpr::Create(0);
+  }
+
+  std::shared_ptr<Expr> arg2, arg3, arg4;
+  if (MatchUnaryOp(*simplified_arg, UnaryOpExpr::Type::SHR1, &arg2) &&
+      MatchUnaryOp(*arg2, UnaryOpExpr::Type::SHR1, &arg3) &&
+      MatchUnaryOp(*arg3, UnaryOpExpr::Type::SHR1, &arg4)) {
+    return UnaryOpExpr::Create(UnaryOpExpr::Type::SHR4, arg4)->simplified();
+  }
+
   switch (simplified_arg->op_type()) {
     case OpType::OR:
     case OpType::AND:
     case OpType::XOR: {
       // Bit wise modification for 1lsb is meaningless.
       const BinaryOpExpr& bin_expr = static_cast<const BinaryOpExpr&>(*simplified_arg);
-      uint64_t value;
-      if (MatchConstant(*bin_expr.arg1(), &value) && ((value & ~1) == 0)) {
-        return UnaryOpExpr::Create(UnaryOpExpr::Type::SHR1, bin_expr.arg2())->simplified();
-      }
-      if (MatchConstant(*bin_expr.arg2(), &value) && ((value & ~1) == 0)) {
-        return UnaryOpExpr::Create(UnaryOpExpr::Type::SHR1, bin_expr.arg1())->simplified();
+      if (bin_expr.arg1()->op_type() == OpType::CONSTANT ||
+          bin_expr.arg2()->op_type() == OpType::CONSTANT) {
+        return BinaryOpExpr::Create(
+            bin_expr.type(),
+            UnaryOpExpr::Create(UnaryOpExpr::Type::SHR1, bin_expr.arg1()),
+            UnaryOpExpr::Create(UnaryOpExpr::Type::SHR1, bin_expr.arg2()))->simplified();
       }
       break;
     }
@@ -1139,6 +1334,11 @@ std::shared_ptr<Expr> BuildShr4Simplified(const UnaryOpExpr& expr) {
     return ConstantExpr::Create(value >> 4);
   }
 
+  value = GetZeroBit(*simplified_arg);
+  if (((value >> 4) | 0xF000000000000000) == 0xFFFFFFFFFFFFFFFF) {
+    return ConstantExpr::Create(0);
+  }
+
   // Sort SHR1, SHR4, SHR16.
   std::shared_ptr<Expr> nested_arg;
   if (MatchUnaryOp(*simplified_arg, UnaryOpExpr::Type::SHR1, &nested_arg)) {
@@ -1147,23 +1347,30 @@ std::shared_ptr<Expr> BuildShr4Simplified(const UnaryOpExpr& expr) {
         UnaryOpExpr::Create(UnaryOpExpr::Type::SHR4, nested_arg)->simplified());
   }
 
+  std::shared_ptr<Expr> arg2, arg3, arg4;
+  if (MatchUnaryOp(*simplified_arg, UnaryOpExpr::Type::SHR4, &arg2) &&
+      MatchUnaryOp(*arg2, UnaryOpExpr::Type::SHR4, &arg3) &&
+      MatchUnaryOp(*arg3, UnaryOpExpr::Type::SHR4, &arg4)) {
+    return UnaryOpExpr::Create(UnaryOpExpr::Type::SHR16, arg4)->simplified();
+  }
+
   switch (simplified_arg->op_type()) {
     case OpType::OR:
     case OpType::AND:
     case OpType::XOR: {
       // Bit wise modification for 1lsb is meaningless.
       const BinaryOpExpr& bin_expr = static_cast<const BinaryOpExpr&>(*simplified_arg);
-      uint64_t value;
-      if (MatchConstant(*bin_expr.arg1(), &value) && ((value & ~0xF) == 0)) {
-        return UnaryOpExpr::Create(UnaryOpExpr::Type::SHR4, bin_expr.arg2())->simplified();
-      }
-      if (MatchConstant(*bin_expr.arg2(), &value) && ((value & ~0xF) == 0)) {
-        return UnaryOpExpr::Create(UnaryOpExpr::Type::SHR4, bin_expr.arg1())->simplified();
+      if (bin_expr.arg1()->op_type() == OpType::CONSTANT ||
+          bin_expr.arg2()->op_type() == OpType::CONSTANT) {
+        return BinaryOpExpr::Create(
+            bin_expr.type(),
+            UnaryOpExpr::Create(UnaryOpExpr::Type::SHR4, bin_expr.arg1()),
+            UnaryOpExpr::Create(UnaryOpExpr::Type::SHR4, bin_expr.arg2()))->simplified();
       }
       break;
     }
 
-      // TODO
+    // TODO
     case OpType::IF0: {
       const If0Expr& if0_expr = static_cast<const If0Expr&>(*simplified_arg);
       if (if0_expr.then_body()->op_type() == OpType::CONSTANT ||
@@ -1196,6 +1403,11 @@ std::shared_ptr<Expr> BuildShr16Simplified(const UnaryOpExpr& expr) {
     return ConstantExpr::Create(value >> 4);
   }
 
+  value = GetZeroBit(*simplified_arg);
+  if (((value >> 16) | 0xFFFF000000000000) == 0xFFFFFFFFFFFFFFFF) {
+    return ConstantExpr::Create(0);
+  }
+
   // Sort SHR1, SHR4, SHR16.
   std::shared_ptr<Expr> nested_arg;
   if (MatchUnaryOp(*simplified_arg, UnaryOpExpr::Type::SHR1, &nested_arg)) {
@@ -1216,17 +1428,17 @@ std::shared_ptr<Expr> BuildShr16Simplified(const UnaryOpExpr& expr) {
     case OpType::XOR: {
       // Bit wise modification for 1lsb is meaningless.
       const BinaryOpExpr& bin_expr = static_cast<const BinaryOpExpr&>(*simplified_arg);
-      uint64_t value;
-      if (MatchConstant(*bin_expr.arg1(), &value) && ((value & ~0xFFFF) == 0)) {
-        return UnaryOpExpr::Create(UnaryOpExpr::Type::SHR16, bin_expr.arg2())->simplified();
-      }
-      if (MatchConstant(*bin_expr.arg2(), &value) && ((value & ~0xFFFF) == 0)) {
-        return UnaryOpExpr::Create(UnaryOpExpr::Type::SHR16, bin_expr.arg1())->simplified();
+      if (bin_expr.arg1()->op_type() == OpType::CONSTANT ||
+          bin_expr.arg2()->op_type() == OpType::CONSTANT) {
+        return BinaryOpExpr::Create(
+            bin_expr.type(),
+            UnaryOpExpr::Create(UnaryOpExpr::Type::SHR16, bin_expr.arg1()),
+            UnaryOpExpr::Create(UnaryOpExpr::Type::SHR16, bin_expr.arg2()))->simplified();
       }
       break;
     }
 
-      // TODO
+    // TODO
     case OpType::IF0: {
       const If0Expr& if0_expr = static_cast<const If0Expr&>(*simplified_arg);
       if (if0_expr.then_body()->op_type() == OpType::CONSTANT ||
@@ -1267,6 +1479,10 @@ std::shared_ptr<Expr> BuildAndSimplified(const BinaryOpExpr& expr) {
   // (and X 0) -> 0
   std::shared_ptr<Expr> simplified_arg2 = expr.arg2()->simplified();
   if (MatchConstant(*simplified_arg2, &value) && value == 0) {
+    return ConstantExpr::Create(0);
+  }
+
+  if ((GetZeroBit(*simplified_arg1) | GetZeroBit(*simplified_arg2)) == 0xFFFFFFFFFFFFFFFF) {
     return ConstantExpr::Create(0);
   }
 
@@ -1340,6 +1556,10 @@ std::shared_ptr<Expr> BuildOrSimplified(const BinaryOpExpr& expr) {
     return ConstantExpr::Create(0xFFFFFFFFFFFFFFFF);
   }
 
+  if ((GetOneBit(*simplified_arg1) | GetOneBit(*simplified_arg2)) == 0xFFFFFFFFFFFFFFFF) {
+    return ConstantExpr::Create(0xFFFFFFFFFFFFFFFF);
+  }
+
   // (or 0 X) -> X
   if (MatchConstant(*simplified_arg1, &value) && value == 0) {
     return simplified_arg2;
@@ -1396,6 +1616,16 @@ std::shared_ptr<Expr> BuildXorSimplified(const BinaryOpExpr& expr) {
   int cmp = simplified_arg1->CompareTo(*simplified_arg2);
   if (cmp == 0) {
     return ConstantExpr::Create(0);
+  }
+
+  if (((GetZeroBit(*simplified_arg1) & GetZeroBit(*simplified_arg2)) |
+       (GetOneBit(*simplified_arg1) & GetOneBit(*simplified_arg2))) == 0xFFFFFFFFFFFFFFFF) {
+    return ConstantExpr::Create(0);
+  }
+
+  if (((GetZeroBit(*simplified_arg1) & GetOneBit(*simplified_arg2)) |
+       (GetOneBit(*simplified_arg1) & GetZeroBit(*simplified_arg2))) == 0xFFFFFFFFFFFFFFFF) {
+    return ConstantExpr::Create(0xFFFFFFFFFFFFFFFF);
   }
 
   // (xor (not X) X) -> 0xFFFFFFFFFFFFFFFF
@@ -1489,8 +1719,13 @@ std::shared_ptr<Expr> BuildPlusSimplified(const BinaryOpExpr& expr) {
     return simplified_arg1;
   }
 
-  // TODO (plus X X) -> (shl1 X)
   int cmp = simplified_arg1->CompareTo(*simplified_arg2);
+
+  // (plus X X) -> (shl1 X)
+  if (cmp == 0) {
+    return UnaryOpExpr::Create(UnaryOpExpr::Type::SHL1, simplified_arg1)->simplified();
+  }
+
   if (cmp > 0) {
     std::swap(simplified_arg1, simplified_arg2);
   }
