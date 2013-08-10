@@ -57,6 +57,8 @@ class Expr : public std::enable_shared_from_this<Expr> {
 
   std::size_t depth() const { return depth_; }
   bool in_fold() const { return in_fold_; }
+  bool has_y() const { return in_fold_ & 1; }
+  bool has_z() const { return in_fold_ & 2; }
   bool has_fold() const { return has_fold_; }
 
   // Returns the OpType of this expression. Maybe virtual type (e.g. CONSTANT or ID).
@@ -104,7 +106,7 @@ class Expr : public std::enable_shared_from_this<Expr> {
   friend std::ostream& operator<<(std::ostream&, const Expr&);
 
   Expr(OpType op_type, int op_type_set, std::size_t depth,
-       bool in_fold, bool has_fold)
+       int in_fold, bool has_fold)
       : op_type_(op_type), op_type_set_(op_type_set), depth_(depth),
         in_fold_(in_fold), has_fold_(has_fold), is_simplified_(false), is_eval_cached_(false) {}
   virtual void Output(std::ostream* os) const = 0;
@@ -116,7 +118,7 @@ class Expr : public std::enable_shared_from_this<Expr> {
   int op_type_set_;
 
   std::size_t depth_;
-  bool in_fold_;
+  int in_fold_;  // in_fold_&1 ==> has_y,  in_fold&2 ==> has_z
   bool has_fold_;
 
   bool is_simplified_;
@@ -237,7 +239,7 @@ class IdExpr : public Expr {
   enum Name { X, Y, Z, };
 
   explicit IdExpr(Name name) :
-      Expr(OpType::ID, 0, 1, name != Name::X, false), name_(name) {
+      Expr(OpType::ID, 0, 1, (name == Name::X ? 0 : name == Name::Y ? 1 : 2), false), name_(name) {
     is_simplified_ = true;
   }
 
@@ -1102,6 +1104,14 @@ std::shared_ptr<Expr> BuildFoldSimplified(const FoldExpr& expr) {
   IdExpr::Name name;
   if (MatchId(*simplified_body, &name) && name == IdExpr::Name::Z) {
     return simplified_init_value;
+  }
+
+  if (!simplified_body->has_y()) {
+    simplified_value = ConstantExpr::CreateZero();
+  }
+
+  if (!simplified_body->has_z()) {
+    simplified_init_value = ConstantExpr::CreateZero();
   }
 
   if (expr.value() == simplified_value &&
