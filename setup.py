@@ -1,3 +1,4 @@
+import glob
 import time
 
 from distutils.core import setup, Extension
@@ -5,6 +6,7 @@ from distutils.core import setup, Extension
 module1 = Extension(
     'solver.yui',
     sources=['solver/yui.cc'],
+    depends=glob.glob('solver/*.h'),
     extra_compile_args=['-std=c++0x'],
     libraries=['glog'])
 
