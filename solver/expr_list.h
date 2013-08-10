@@ -42,7 +42,7 @@ std::vector<std::shared_ptr<Expr> > ListExprDepth1(int op_type_set) {
 
 std::vector<std::shared_ptr<Expr> > ListExprInternal(
     const std::vector<std::vector<std::shared_ptr<Expr> > >& table,
-    std::size_t depth, bool is_initial, int op_type_set) {
+    std::size_t depth, int op_type_set) {
   std::vector<std::shared_ptr<Expr> > result;
 
   // Unary.
@@ -104,14 +104,6 @@ std::vector<std::shared_ptr<Expr> > ListExprInternal(
           if (e_value->has_fold() || e_value->in_fold()) continue;
           for (auto& e_init: table[j]) {
             if (e_init->has_fold() || e_init->in_fold()) continue;
-
-            if (is_initial &&
-                e_value == IdExpr::CreateX() &&
-                e_init == ConstantExpr::CreateZero()) {
-              // Do not create TFOLD.
-              continue;
-            }
-
             for (auto& e_body: table[depth - 2 - i - j]) {
               if (e_body->has_fold()) continue;
               result.push_back(FoldExpr::Create(e_value, e_init, e_body));
@@ -122,21 +114,27 @@ std::vector<std::shared_ptr<Expr> > ListExprInternal(
     }
   }
 
-  if (is_initial && depth >= 5 && (op_type_set & OpType::TFOLD)) {
-    for (auto& e_body : table[depth - 4]) {
-      if (e_body->has_fold()) continue;
-      result.push_back(FoldExpr::CreateTFold(e_body));
-    }
-  }
-
   return result;
 }
 
 std::vector<std::shared_ptr<Expr> > ListExpr(std::size_t depth, int op_type_set) {
   std::vector<std::vector<std::shared_ptr<Expr> > > table(1);
+
+  // For TFOLD, the size of the body is by |lambda|+|fold|+|x|+|0| = 5 smaller.
+  std::size_t table_gen_limit =
+    (op_type_set & OpType::TFOLD ? (depth >= 6 ? depth - 5 : 1) : depth - 1);
+
   table.push_back(ListExprDepth1(op_type_set));
-  for (size_t d = 2; d <= depth - 1; ++d)
-    table.push_back(ListExprInternal(table, d, (d == depth - 1), op_type_set));
+  for (size_t d = 2; d <= table_gen_limit; ++d)
+    table.push_back(ListExprInternal(table, d, op_type_set));
+
+  if (op_type_set & OpType::TFOLD) {
+    table.resize(depth);
+    if (depth >= 5)
+      for (auto& e_body : table[depth - 5])
+        if (!e_body->has_fold())
+          table[depth - 1].push_back(FoldExpr::CreateTFold(e_body));
+  }
 
   std::vector<std::shared_ptr<Expr> > result;
   for (auto& e: table[depth - 1]) {

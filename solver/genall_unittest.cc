@@ -47,6 +47,36 @@ TEST(GenAllTest, D) {
     EXPECT_TRUE(result[i]->EqualTo(*result_old[i]));
 }
 
+TEST(GenAllTest, E) {
+  int size = 5;
+  int op_type_set = ParseOpTypeSet("shl1,if0,tfold");
+  std::vector<std::shared_ptr<Expr> > result = ListExpr(size, op_type_set);
+  std::vector<std::shared_ptr<Expr> > result_old = old::ListExpr(size, op_type_set);
+  EXPECT_EQ(result_old.size(), result.size());
+  for (size_t i = 0; i < result.size(); ++i)
+    EXPECT_TRUE(result[i]->EqualTo(*result_old[i]));
+}
+
+TEST(GenAllTest, F) {
+  int size = 6;
+  int op_type_set = ParseOpTypeSet("shl1,if0,tfold");
+  std::vector<std::shared_ptr<Expr> > result = ListExpr(size, op_type_set);
+  std::vector<std::shared_ptr<Expr> > result_old = old::ListExpr(size, op_type_set);
+  EXPECT_EQ(result_old.size(), result.size());
+  for (size_t i = 0; i < result.size(); ++i)
+    EXPECT_TRUE(result[i]->EqualTo(*result_old[i]));
+}
+
+TEST(GenAllTest, G) {
+  int size = 7;
+  int op_type_set = ParseOpTypeSet("shl1,if0,tfold");
+  std::vector<std::shared_ptr<Expr> > result = ListExpr(size, op_type_set);
+  std::vector<std::shared_ptr<Expr> > result_old = old::ListExpr(size, op_type_set);
+  EXPECT_EQ(result_old.size(), result.size());
+  for (size_t i = 0; i < result.size(); ++i)
+    EXPECT_TRUE(result[i]->EqualTo(*result_old[i]));
+}
+
 int main(int argc, char **argv) {
   google::InstallFailureSignalHandler();
   google::InitGoogleLogging(argv[0]);
