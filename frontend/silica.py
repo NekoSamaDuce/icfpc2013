@@ -1,8 +1,8 @@
 """Silica: Solver frontend v2.
 
 Example:
-./python.sh -m frontend.silica --mode=train --size=3 --operators= --max_cluster_size=20 --counterexample_filter=false
-./python.sh -m frontend.silica --mode=serious --problemset_file=data/train_small.tsv --problem_id=xop6dUzEtUBAprA0DGVwcAvB --max_cluster_size=20 --counterexample_filter=false
+./python.sh -m frontend.silica --cluster_solver=solver/simplify_main --batch_evaluate_solver=solver/batch_evaluate --mode=train --size=3 --operators= --max_cluster_size=20 --counterexample_filter=false
+./python.sh -m frontend.silica --cluster_solver=solver/simplify_main --batch_evaluate_solver=solver/batch_evaluate --mode=serious --problemset_file=data/train_small.tsv --problem_id=xop6dUzEtUBAprA0DGVwcAvB --max_cluster_size=20 --counterexample_filter=false
 """
 
 import logging
@@ -19,15 +19,13 @@ from util import stdlog
 
 FLAGS = gflags.FLAGS
 
-SOLVER_DIR = os.path.join(os.path.dirname(__file__), '../solver')
-
 gflags.DEFINE_string(
-    'cluster_solver', os.path.join(SOLVER_DIR, 'cluster_main'),
+    'cluster_solver', None,
     'Path to cluster solver binary.')
 gflags.MarkFlagAsRequired('cluster_solver')
 
 gflags.DEFINE_string(
-    'batch_evaluate_solver', os.path.join(SOLVER_DIR, 'batch_evaluate'),
+    'batch_evaluate_solver', None,
     'Path to batch evaluate solver binary.')
 gflags.MarkFlagAsRequired('batch_evaluate_solver')
 
@@ -44,10 +42,12 @@ gflags.MarkFlagAsRequired('counterexample_filter')
 
 
 def RunClusterSolver(problem):
+  logging.info('Running clusterer...')
   cluster_solver_output = subprocess.check_output(
       [FLAGS.cluster_solver,
        '--size=%d' % problem.size,
        '--operators=%s' % ','.join(problem.operators)])
+  logging.info('Finished.')
   assert cluster_solver_output.startswith('argument: ')
   lines = cluster_solver_output.splitlines()
   arguments = [int(s, 0) for s in lines.pop(0).split()[1].split(',')]

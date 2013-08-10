@@ -1,8 +1,8 @@
 """Lisbeth: Solver frontend v1.
 
 Example:
-./python.sh -m frontend.lisbeth --mode=train --size=3 --operators=
-./python.sh -m frontend.lisbeth --mode=serious --problemset_file=data/train_small.tsv --problem_id=xop6dUzEtUBAprA0DGVwcAvB
+./python.sh -m frontend.lisbeth --genall_solver=solver/genall --mode=train --size=3 --operators=
+./python.sh -m frontend.lisbeth --genall_solver=solver/genall --mode=serious --problemset_file=data/train_small.tsv --problem_id=xop6dUzEtUBAprA0DGVwcAvB
 """
 
 import logging
@@ -19,10 +19,8 @@ from util import stdlog
 
 FLAGS = gflags.FLAGS
 
-SOLVER_DIR = os.path.join(os.path.dirname(__file__), '../solver')
-
 gflags.DEFINE_string(
-    'genall_solver', os.path.join(SOLVER_DIR, 'genall'),
+    'genall_solver', None,
     'Path to genall solver binary.')
 gflags.MarkFlagAsRequired('genall_solver')
 
