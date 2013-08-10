@@ -100,6 +100,11 @@ TEST(SimplifyFoldTest, XOne_BodyZ_ReducedToOne) {
   ASSERT_TRUE(s->EqualTo(*ConstantExpr::CreateOne()));
 }
 
+TEST(SimplifyFoldTest, BugWeHaveMet1) {
+  std::shared_ptr<Expr> e = Parse("(lambda (x) (fold (or (shr1 x) 1) x (lambda (y z) (not (xor y z)))))");
+  std::shared_ptr<Expr> s = Simplify(e);
+  ASSERT_TRUE(s->EqualTo(*e));
+}
 
 // Shift
 

@@ -56,7 +56,7 @@ class Expr : public std::enable_shared_from_this<Expr> {
   }
 
   std::size_t depth() const { return depth_; }
-  bool in_fold() const { return in_fold_; }
+  int in_fold() const { return in_fold_; }
   bool has_y() const { return in_fold_ & 1; }
   bool has_z() const { return in_fold_ & 2; }
   bool has_fold() const { return has_fold_; }
