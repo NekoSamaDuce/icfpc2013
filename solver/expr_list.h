@@ -119,7 +119,7 @@ std::vector<std::shared_ptr<Expr> > ListExpr(
     if (mode == SIMPLIFY_EACH_STEP)
       table_d = SimplifyExprList(table_d);
     table.push_back(table_d);
-    std::cerr << "SIZE[" << d << "] " << table_d.size() << std::endl;
+    LOG(INFO) << "SIZE[" << d << "] " << table_d.size();
   }
 
   if (op_type_set & OpType::TFOLD) {
@@ -137,7 +137,7 @@ std::vector<std::shared_ptr<Expr> > ListExpr(
         (!e->in_fold() && e->op_type_set() == op_type_set))
       result.push_back(LambdaExpr::Create(e));
   }
-  std::cerr << "SIZE[GEN] " << result.size() << std::endl;
+  LOG(INFO) << "SIZE[GEN] " << result.size();
   return result;
 }
 

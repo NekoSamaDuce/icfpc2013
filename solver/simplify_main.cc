@@ -25,8 +25,9 @@ int main(int argc, char* argv[]) {
 
   std::vector<std::shared_ptr<Expr> > result =
       ListExpr(FLAGS_size, op_type_set, FLAGS_simplifyeach ? SIMPLIFY_EACH_STEP : NO_SIMPLIFY);
-  result = SimplifyExprList(result);
-  std::cerr << "SIZE[FIN] " <<  result.size() << std::endl;
+  if (!FLAGS_simplifyeach)
+    result = SimplifyExprList(result);
+  LOG(INFO) << "SIZE[FIN] " <<  result.size();
   std::vector<uint64_t> key = CreateKey();
   std::map<std::vector<uint64_t>, std::vector<std::shared_ptr<Expr> > > cluster =
       CreateCluster(key, result);
