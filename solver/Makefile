@@ -4,7 +4,7 @@ AR=ar
 CXX=g++
 CXXFLAGS=-std=gnu++0x -Werror -Wall -O2 -lglog -lgflags
 TEST_CXXFLAGS=$(CXXFLAGS) -Ithird_party/gtest/include -lpthread
-BINARIES=genall cluster_main simplify_main batch_evaluate synthesis
+BINARIES=genall cluster_main simplify_main batch_evaluate synthesis dup_viewer
 TEST_BINARIES=unittest simplify_unittest genall_unittest
 GTEST_BINARIES=libgtest.a gtest-all.o
 GTEST_DIR=third_party/gtest
@@ -18,6 +18,9 @@ cluster_main: cluster_main.cc expr.h expr_list.h cluster.h
 	$(CXX) $< $(CXXFLAGS) -o $@
 
 simplify_main: simplify_main.cc expr.h expr_list.h cluster.h simplify.h
+	$(CXX) $< $(CXXFLAGS) -o $@
+
+dup_viewer: dup_viewer.cc expr.h expr_list.h cluster.h simplify.h
 	$(CXX) $< $(CXXFLAGS) -o $@
 
 batch_evaluate: batch_evaluate.cc expr.h expr_list.h parser.h
