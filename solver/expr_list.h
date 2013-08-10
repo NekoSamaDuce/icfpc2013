@@ -31,7 +31,9 @@ std::vector<std::shared_ptr<Expr> > ListExprInternal(
     std::vector<std::shared_ptr<Expr> > result;
     result.push_back(ConstantExpr::CreateZero());
     result.push_back(ConstantExpr::CreateOne());
-    result.push_back(IdExpr::CreateX());
+    if (!(op_type_set & OpType::TFOLD)) {
+      result.push_back(IdExpr::CreateX());
+    }
     if (op_type_set & (OpType::FOLD | OpType::TFOLD)) {
       result.push_back(IdExpr::CreateY());
       result.push_back(IdExpr::CreateZ());
