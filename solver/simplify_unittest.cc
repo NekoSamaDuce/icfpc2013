@@ -31,6 +31,105 @@ TEST(SimplifyCombinedTest, Xor_NotX_Full_ReducedToX) {
 }
 
 
+// Shift
+
+TEST(SimplifyShiftTest, Shl1_AsIs) {
+  std::shared_ptr<Expr> e = Parse("(shl1 x)");
+  std::shared_ptr<Expr> s = Simplify(e);
+  ASSERT_TRUE(s->EqualTo(*e));
+}
+
+TEST(SimplifyShiftTest, Shl1Shr1_AsIs) {
+  std::shared_ptr<Expr> e = Parse("(shl1 (shr1 x))");
+  std::shared_ptr<Expr> s = Simplify(e);
+  ASSERT_TRUE(s->EqualTo(*e));
+}
+
+TEST(SimplifyShiftTest, Shr1Shl1_AsIs) {
+  std::shared_ptr<Expr> e = Parse("(shr1 (shl1 x))");
+  std::shared_ptr<Expr> s = Simplify(e);
+  ASSERT_TRUE(s->EqualTo(*e));
+}
+
+TEST(SimplifyShiftTest, Shr1_AsIs) {
+  std::shared_ptr<Expr> e = Parse("(shr1 x)");
+  std::shared_ptr<Expr> s = Simplify(e);
+  ASSERT_TRUE(s->EqualTo(*e));
+}
+
+TEST(SimplifyShiftTest, Shr1Shr4_AsIs) {
+  std::shared_ptr<Expr> e = Parse("(shr1 (shr4 x))");
+  std::shared_ptr<Expr> s = Simplify(e);
+  ASSERT_TRUE(s->EqualTo(*e));
+}
+
+TEST(SimplifyShiftTest, Shr4Shr1_Swapped) {
+  std::shared_ptr<Expr> e = Parse("(shr4 (shr1 x))");
+  std::shared_ptr<Expr> s = Simplify(e);
+  ASSERT_TRUE(s->EqualTo(*Parse("(shr1 (shr4 x))")));
+}
+
+TEST(SimplifyShiftTest, Shr4_AsIs) {
+  std::shared_ptr<Expr> e = Parse("(shr4 x)");
+  std::shared_ptr<Expr> s = Simplify(e);
+  ASSERT_TRUE(s->EqualTo(*e));
+}
+
+TEST(SimplifyShiftTest, Shr4Shr16_AsIs) {
+  std::shared_ptr<Expr> e = Parse("(shr4 (shr16 x))");
+  std::shared_ptr<Expr> s = Simplify(e);
+  ASSERT_TRUE(s->EqualTo(*e));
+}
+
+TEST(SimplifyShiftTest, Shr16Shr4_Swapped) {
+  std::shared_ptr<Expr> e = Parse("(shr16 (shr4 x))");
+  std::shared_ptr<Expr> s = Simplify(e);
+  ASSERT_TRUE(s->EqualTo(*Parse("(shr4 (shr16 x))")));
+}
+
+TEST(SimplifyShiftTest, Shr16_AsIs) {
+  std::shared_ptr<Expr> e = Parse("(shr16 x)");
+  std::shared_ptr<Expr> s = Simplify(e);
+  ASSERT_TRUE(s->EqualTo(*e));
+}
+
+TEST(SimplifyShiftTest, Shr1Shr1Shr1Shr1_AsIs) {
+  std::shared_ptr<Expr> e = Parse("(shr1 (shr1 (shr1 (shr1 x))))");
+  std::shared_ptr<Expr> s = Simplify(e);
+  LOG(WARNING) << "To be shr4?";
+  ASSERT_TRUE(s->EqualTo(*e));
+}
+
+TEST(SimplifyShiftTest, Shr4Shr4Shr4Shr4_AsIs) {
+  std::shared_ptr<Expr> e = Parse("(shr4 (shr4 (shr4 (shr4 x))))");
+  std::shared_ptr<Expr> s = Simplify(e);
+  LOG(WARNING) << "To be shr16?";
+  ASSERT_TRUE(s->EqualTo(*e));
+}
+
+TEST(SimplifyShiftTest, Shr16Shr16Shr16Shr16_AsIs) {
+  std::shared_ptr<Expr> e = Parse("(shr16 (shr16 (shr16 (shr16 x))))");
+  std::shared_ptr<Expr> s = Simplify(e);
+  LOG(WARNING) << "To be 0?";
+  ASSERT_TRUE(s->EqualTo(*e));
+}
+
+
+// Not
+
+TEST(SimplifyNotTest, X_AsIs) {
+  std::shared_ptr<Expr> e = Parse("(not x)");
+  std::shared_ptr<Expr> s = Simplify(e);
+  ASSERT_TRUE(s->EqualTo(*e));
+}
+
+TEST(SimplifyNotTest, NotX_AsIs) {
+  std::shared_ptr<Expr> e = Parse("(not (not x))");
+  std::shared_ptr<Expr> s = Simplify(e);
+  ASSERT_TRUE(s->EqualTo(*IdExpr::CreateX()));
+}
+
+
 // Or
 
 TEST(SimplifyOrTest, NotXNotX_ReducedToZero) {
