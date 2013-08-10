@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <vector>
 #include "expr.h"
+#include "simplify.h"
 
 namespace icfpc {
 
@@ -99,7 +100,13 @@ std::vector<std::shared_ptr<Expr> > ListExprInternal(
   return result;
 }
 
-std::vector<std::shared_ptr<Expr> > ListExpr(std::size_t depth, int op_type_set) {
+enum GenAllSimplifyMode {
+  NO_SIMPLIFY,
+  SIMPLIFY_EACH_STEP,
+};
+
+std::vector<std::shared_ptr<Expr> > ListExpr(
+    std::size_t depth, int op_type_set, GenAllSimplifyMode mode) {
   std::vector<std::vector<std::shared_ptr<Expr> > > table(1);
 
   // For TFOLD, the size of the body is by |lambda|+|fold|+|x|+|0| = 5 smaller.
@@ -107,8 +114,13 @@ std::vector<std::shared_ptr<Expr> > ListExpr(std::size_t depth, int op_type_set)
     (op_type_set & OpType::TFOLD ? (depth >= 6 ? depth - 5 : 1) : depth - 1);
 
   table.push_back(ListExprDepth1(op_type_set));
-  for (size_t d = 2; d <= table_gen_limit; ++d)
-    table.push_back(ListExprInternal(table, d, op_type_set));
+  for (size_t d = 2; d <= table_gen_limit; ++d) {
+    auto table_d = ListExprInternal(table, d, op_type_set);
+    if (mode == SIMPLIFY_EACH_STEP)
+      table_d = SimplifyExprList(table_d);
+    table.push_back(table_d);
+    std::cerr << "SIZE[" << d << "] " << table_d.size() << std::endl;
+  }
 
   if (op_type_set & OpType::TFOLD) {
     table.resize(depth);
@@ -120,9 +132,12 @@ std::vector<std::shared_ptr<Expr> > ListExpr(std::size_t depth, int op_type_set)
 
   std::vector<std::shared_ptr<Expr> > result;
   for (auto& e: table[depth - 1]) {
-    if (!e->in_fold() && e->op_type_set() == op_type_set)
+    // Caution: in SIMPLIFY_EACH_STEP mode, operator set may not be complete.
+    if (mode == SIMPLIFY_EACH_STEP ||
+        (!e->in_fold() && e->op_type_set() == op_type_set))
       result.push_back(LambdaExpr::Create(e));
   }
+  std::cerr << "SIZE[GEN] " << result.size() << std::endl;
   return result;
 }
 

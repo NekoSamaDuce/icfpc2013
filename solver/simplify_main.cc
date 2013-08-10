@@ -10,6 +10,7 @@ using namespace icfpc;
 
 DEFINE_int32(size, -1, "Size of the expression");
 DEFINE_string(operators, "", "List of the operators");
+DEFINE_bool(simplifyeach, false, "Do simplification each step");
 
 int main(int argc, char* argv[]) {
   google::InstallFailureSignalHandler();
@@ -22,8 +23,10 @@ int main(int argc, char* argv[]) {
 
   int op_type_set = ParseOpTypeSet(FLAGS_operators);
 
-  std::vector<std::shared_ptr<Expr> > result = ListExpr(FLAGS_size, op_type_set);
+  std::vector<std::shared_ptr<Expr> > result =
+      ListExpr(FLAGS_size, op_type_set, FLAGS_simplifyeach ? SIMPLIFY_EACH_STEP : NO_SIMPLIFY);
   result = SimplifyExprList(result);
+  std::cerr << "SIZE[FIN] " <<  result.size() << std::endl;
   std::vector<uint64_t> key = CreateKey();
   std::map<std::vector<uint64_t>, std::vector<std::shared_ptr<Expr> > > cluster =
       CreateCluster(key, result);

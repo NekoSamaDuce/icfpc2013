@@ -21,7 +21,7 @@ int main(int argc, char* argv[]) {
 
   int op_type_set = ParseOpTypeSet(FLAGS_operators);
 
-  std::vector<std::shared_ptr<Expr> > result = ListExpr(FLAGS_size, op_type_set);
+  std::vector<std::shared_ptr<Expr> > result = ListExpr(FLAGS_size, op_type_set, NO_SIMPLIFY);
   std::vector<uint64_t> key = CreateKey();
   std::map<std::vector<uint64_t>, std::vector<std::shared_ptr<Expr> > > cluster =
       CreateCluster(key, result);
