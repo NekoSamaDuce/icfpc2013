@@ -1,5 +1,6 @@
+// TODO(dmikurube): Fold: y, z is not included
+// TODO(dmikurube): Fold: body is z
 // TODO(dmikurube): Try Eval both for simplified and naive.
-// TODO(dmikurube): X,X / NotX,X / X,NotX / NotX,NotX
 
 #include <glog/logging.h>
 #include <gtest/gtest.h>
