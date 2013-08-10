@@ -25,42 +25,40 @@ struct DepthComp {
   }
 };
 
-std::vector<std::shared_ptr<Expr> > ListExprInternal(
-    std::size_t depth, bool is_initial, int op_type_set) {
-  if (depth == 1) {
-    std::vector<std::shared_ptr<Expr> > result;
-    result.push_back(ConstantExpr::CreateZero());
-    result.push_back(ConstantExpr::CreateOne());
-    if (!(op_type_set & OpType::TFOLD)) {
-      result.push_back(IdExpr::CreateX());
-    }
-    if (op_type_set & (OpType::FOLD | OpType::TFOLD)) {
-      result.push_back(IdExpr::CreateY());
-      result.push_back(IdExpr::CreateZ());
-    }
-    return result;
+std::vector<std::shared_ptr<Expr> > ListExprDepth1(int op_type_set) {
+  std::vector<std::shared_ptr<Expr> > result = {
+    ConstantExpr::CreateZero(),
+    ConstantExpr::CreateOne(),
+  };
+  if (!(op_type_set & OpType::TFOLD)) {
+    result.push_back(IdExpr::CreateX());
   }
+  if (op_type_set & (OpType::FOLD | OpType::TFOLD)) {
+    result.push_back(IdExpr::CreateY());
+    result.push_back(IdExpr::CreateZ());
+  }
+  return result;
+}
 
-  std::vector<std::shared_ptr<Expr> > result_list = ListExprInternal(depth - 1, false, op_type_set);
-  std::vector<std::shared_ptr<Expr> > new_list;
+std::vector<std::shared_ptr<Expr> > ListExprInternal(
+    const std::vector<std::vector<std::shared_ptr<Expr> > >& table,
+    std::size_t depth, bool is_initial, int op_type_set) {
+  std::vector<std::shared_ptr<Expr> > result;
 
   // Unary.
   if (depth >= 2 &&
       (op_type_set & (OpType::NOT | OpType::SHL1 | OpType::SHR1 | OpType::SHR4 | OpType::SHR16))) {
-    auto range = std::equal_range(
-        result_list.begin(), result_list.end(),
-        std::make_shared<KeyExpr>(depth - 1), DepthComp());
-    for (auto it = range.first; it != range.second; ++it) {
+    for (auto& e : table[depth - 1]) {
       if (op_type_set & OpType::NOT)
-        new_list.push_back(UnaryOpExpr::Create(UnaryOpExpr::Type::NOT, *it));
+        result.push_back(UnaryOpExpr::Create(UnaryOpExpr::Type::NOT, e));
       if (op_type_set & OpType::SHL1)
-        new_list.push_back(UnaryOpExpr::Create(UnaryOpExpr::Type::SHL1, *it));
+        result.push_back(UnaryOpExpr::Create(UnaryOpExpr::Type::SHL1, e));
       if (op_type_set & OpType::SHR1)
-        new_list.push_back(UnaryOpExpr::Create(UnaryOpExpr::Type::SHR1, *it));
+        result.push_back(UnaryOpExpr::Create(UnaryOpExpr::Type::SHR1, e));
       if (op_type_set & OpType::SHR4)
-        new_list.push_back(UnaryOpExpr::Create(UnaryOpExpr::Type::SHR4, *it));
+        result.push_back(UnaryOpExpr::Create(UnaryOpExpr::Type::SHR4, e));
       if (op_type_set & OpType::SHR16)
-        new_list.push_back(UnaryOpExpr::Create(UnaryOpExpr::Type::SHR16, *it));
+        result.push_back(UnaryOpExpr::Create(UnaryOpExpr::Type::SHR16, e));
     }
   }
 
@@ -68,43 +66,29 @@ std::vector<std::shared_ptr<Expr> > ListExprInternal(
   if (depth >= 3 &&
       (op_type_set & (OpType::AND | OpType::OR | OpType::XOR | OpType::PLUS))) {
     for (std::size_t i = 1; i < depth - 1; ++i) {
-      auto lhs_range = std::equal_range(
-          result_list.begin(), result_list.end(),
-          std::make_shared<KeyExpr>(i), DepthComp());
-      auto rhs_range = std::equal_range(
-          result_list.begin(), result_list.end(),
-          std::make_shared<KeyExpr>(depth - 1 - i), DepthComp());
-      for (auto lit = lhs_range.first; lit != lhs_range.second; ++lit) {
-        for (auto rit = rhs_range.first; rit != rhs_range.second; ++rit) {
+      for (auto& lhs : table[i]) {
+        for (auto& rhs : table[depth - 1 - i]) {
           if (op_type_set & OpType::AND)
-            new_list.push_back(BinaryOpExpr::Create(BinaryOpExpr::Type::AND, *lit, *rit));
+            result.push_back(BinaryOpExpr::Create(BinaryOpExpr::Type::AND, lhs, rhs));
           if (op_type_set & OpType::OR)
-            new_list.push_back(BinaryOpExpr::Create(BinaryOpExpr::Type::OR, *lit, *rit));
+            result.push_back(BinaryOpExpr::Create(BinaryOpExpr::Type::OR, lhs, rhs));
           if (op_type_set & OpType::XOR)
-            new_list.push_back(BinaryOpExpr::Create(BinaryOpExpr::Type::XOR, *lit, *rit));
+            result.push_back(BinaryOpExpr::Create(BinaryOpExpr::Type::XOR, lhs, rhs));
           if (op_type_set & OpType::PLUS)
-            new_list.push_back(BinaryOpExpr::Create(BinaryOpExpr::Type::PLUS, *lit, *rit));
+            result.push_back(BinaryOpExpr::Create(BinaryOpExpr::Type::PLUS, lhs, rhs));
         }
       }
     }
   }
 
+  // Ternary: if0.
   if (depth >= 4 && (op_type_set & OpType::IF0)) {
     for (size_t i = 1; i < depth - 2; ++i) {
-      auto cond_range = std::equal_range(
-          result_list.begin(), result_list.end(),
-          std::make_shared<KeyExpr>(i), DepthComp());
       for (size_t j = 1; j < depth - i - 1; ++j) {
-        auto then_range = std::equal_range(
-            result_list.begin(), result_list.end(),
-            std::make_shared<KeyExpr>(j), DepthComp());
-        auto else_range = std::equal_range(
-            result_list.begin(), result_list.end(),
-            std::make_shared<KeyExpr>(depth - 1 - i - j), DepthComp());
-        for (auto cit = cond_range.first; cit != cond_range.second; ++cit) {
-          for (auto tit = then_range.first; tit != then_range.second; ++tit) {
-            for (auto eit = else_range.first; eit != else_range.second; ++eit) {
-              new_list.push_back(If0Expr::Create(*cit, *tit, *eit));
+        for (auto& e_cond : table[i]) {
+          for (auto& e_then : table[j]) {
+            for (auto& e_else : table[depth - 1 - i - j]) {
+              result.push_back(If0Expr::Create(e_cond, e_then, e_else));
             }
           }
         }
@@ -112,34 +96,25 @@ std::vector<std::shared_ptr<Expr> > ListExprInternal(
     }
   }
 
-  // TODO do not create TFold expression here.
+  // Ternary: fold.
   if (depth >= 5 && (op_type_set & OpType::FOLD)) {
     for (size_t i = 1; i < depth - 3; ++i) {
-      auto value_range = std::equal_range(
-          result_list.begin(), result_list.end(),
-          std::make_shared<KeyExpr>(i), DepthComp());
       for (size_t j = 1; j < depth - i - 2; ++j) {
-        auto init_value_range = std::equal_range(
-            result_list.begin(), result_list.end(),
-            std::make_shared<KeyExpr>(j), DepthComp());
-        auto body_range = std::equal_range(
-            result_list.begin(), result_list.end(),
-            std::make_shared<KeyExpr>(depth - 2 - i - j), DepthComp());
-        for (auto vit = value_range.first; vit != value_range.second; ++vit) {
-          if ((*vit)->has_fold() || (*vit)->in_fold()) continue;
-          for (auto iit = init_value_range.first; iit != init_value_range.second; ++iit) {
-            if ((*iit)->has_fold() || (*iit)->in_fold()) continue;
+        for (auto& e_value: table[i]) {
+          if (e_value->has_fold() || e_value->in_fold()) continue;
+          for (auto& e_init: table[j]) {
+            if (e_init->has_fold() || e_init->in_fold()) continue;
 
             if (is_initial &&
-                (*vit) == IdExpr::CreateX() &&
-                (*iit) == ConstantExpr::CreateZero()) {
+                e_value == IdExpr::CreateX() &&
+                e_init == ConstantExpr::CreateZero()) {
               // Do not create TFOLD.
               continue;
             }
 
-            for (auto bit = body_range.first; bit != body_range.second; ++bit) {
-              if ((*bit)->has_fold()) continue;
-              new_list.push_back(FoldExpr::Create(*vit, *iit, *bit));
+            for (auto& e_body: table[depth - 2 - i - j]) {
+              if (e_body->has_fold()) continue;
+              result.push_back(FoldExpr::Create(e_value, e_init, e_body));
             }
           }
         }
@@ -148,29 +123,25 @@ std::vector<std::shared_ptr<Expr> > ListExprInternal(
   }
 
   if (is_initial && depth >= 5 && (op_type_set & OpType::TFOLD)) {
-    auto body_range = std::equal_range(
-        result_list.begin(), result_list.end(),
-        std::make_shared<KeyExpr>(depth - 4), DepthComp());
-    for (auto bit = body_range.first; bit != body_range.second; ++bit) {
-      if ((*bit)->has_fold()) continue;
-      new_list.push_back(FoldExpr::CreateTFold(*bit));
+    for (auto& e_body : table[depth - 4]) {
+      if (e_body->has_fold()) continue;
+      result.push_back(FoldExpr::CreateTFold(e_body));
     }
   }
 
-  result_list.insert(result_list.end(), new_list.begin(), new_list.end());
-  return result_list;
+  return result;
 }
 
 std::vector<std::shared_ptr<Expr> > ListExpr(std::size_t depth, int op_type_set) {
-  std::vector<std::shared_ptr<Expr> > child_list =
-      ListExprInternal(depth - 1, true, op_type_set);
-  auto range = std::equal_range(
-      child_list.begin(), child_list.end(), std::make_shared<KeyExpr>(depth - 1), DepthComp());
+  std::vector<std::vector<std::shared_ptr<Expr> > > table(1);
+  table.push_back(ListExprDepth1(op_type_set));
+  for (size_t d = 2; d <= depth - 1; ++d)
+    table.push_back(ListExprInternal(table, d, (d == depth - 1), op_type_set));
+
   std::vector<std::shared_ptr<Expr> > result;
-  while (range.first != range.second) {
-    if (!(*range.first)->in_fold() && (*range.first)->op_type_set() == op_type_set)
-      result.push_back(LambdaExpr::Create(*range.first));
-    ++range.first;
+  for (auto& e: table[depth - 1]) {
+    if (!e->in_fold() && e->op_type_set() == op_type_set)
+      result.push_back(LambdaExpr::Create(e));
   }
   return result;
 }

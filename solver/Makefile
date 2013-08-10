@@ -8,7 +8,7 @@ TEST_BINARIES=unittest simplify_unittest
 
 all: $(BINARIES) $(TEST_BINARIES)
 
-genall: genall.cc expr.h expr_list.h
+genall: genall.cc expr.h expr_list.h expr_list_old.h
 	$(CXX) $< $(CXXFLAGS) -o $@
 
 cluster_main: cluster_main.cc expr.h expr_list.h cluster.h
