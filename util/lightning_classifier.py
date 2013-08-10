@@ -73,6 +73,9 @@ class Problem(object):
       data['timeLeft'] = self.time_left
     return data
 
+  def ToProblemLine(self):
+    return '\t'.join([self.id, str(self.size), ','.join(self.operators)])
+
   def __repr__(self):
     v = ['Problem']
     v.append('id=%r' % self.id)
@@ -108,7 +111,7 @@ def main():
   for problem in problems:
     arguments, clusters = RunClusterSolver(problem)
     max_cluster_size = max([len(programs) for expected, programs in clusters])
-    line = '%s size=%d max_cluster_size=%d' % (problem.id, problem.size, max_cluster_size)
+    line = problem.ToProblemLine()
     if max_cluster_size <= FLAGS.max_cluster_size:
       print line
     else:

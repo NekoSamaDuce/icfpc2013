@@ -42,6 +42,9 @@ class Problem(object):
       data['timeLeft'] = self.time_left
     return data
 
+  def ToProblemLine(self):
+    return '\t'.join([self.id, str(self.size), ','.join(self.operators)])
+
   def __repr__(self):
     v = ['Problem']
     v.append('id=%r' % self.id)

@@ -5,7 +5,7 @@ def main():
   problems = api.MyProblems()
   problems.sort(key=lambda p: (p.size, p.id))
   for p in problems:
-    line = '\t'.join(map(str, [p.id, p.size, ','.join(p.operators)]))
+    line = p.ToProblemLine()
     if p.solved is None:
       print line
     elif p.solved:
