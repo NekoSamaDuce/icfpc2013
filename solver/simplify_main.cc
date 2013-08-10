@@ -48,7 +48,7 @@ int main(int argc, char* argv[]) {
     std::cout << "\n";
 
     for (const std::shared_ptr<Expr>& e : iter->second) {
-      std::cout << *e << ", " << *const_cast<Expr&>(*e).simplified() << "\n";
+      std::cout << *e << "\n";
     }
   }
 
