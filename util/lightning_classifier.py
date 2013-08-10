@@ -111,7 +111,7 @@ def main():
   for problem in problems:
     arguments, clusters = RunClusterSolver(problem)
     max_cluster_size = max([len(programs) for expected, programs in clusters])
-    line = problem.ToProblemLine()
+    line = '%s\tmax_cluster_size=%d' % (problem.ToProblemLine(), max_cluster_size)
     if max_cluster_size <= FLAGS.max_cluster_size:
       print line
     else:
