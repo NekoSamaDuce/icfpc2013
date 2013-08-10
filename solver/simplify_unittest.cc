@@ -32,6 +32,75 @@ TEST(SimplifyCombinedTest, Xor_NotX_Full_ReducedToX) {
 }
 
 
+// Fold
+
+TEST(SimplifyFoldTest, ZeroZero_OrYZ_AsIs) {
+  std::shared_ptr<Expr> e = Parse("(fold 0 0 (lambda (y z) (or y z)))");
+  std::shared_ptr<Expr> s = Simplify(e);
+  ASSERT_TRUE(s->EqualTo(*e));
+}
+
+TEST(SimplifyFoldTest, XZero_OrYZ_AsIs) {
+  std::shared_ptr<Expr> e = Parse("(fold x 0 (lambda (y z) (or y z)))");
+  std::shared_ptr<Expr> s = Simplify(e);
+  ASSERT_TRUE(s->EqualTo(*e));
+}
+
+TEST(SimplifyFoldTest, XOne_OrYZ_AsIs) {
+  std::shared_ptr<Expr> e = Parse("(fold x 1 (lambda (y z) (or y z)))");
+  std::shared_ptr<Expr> s = Simplify(e);
+  ASSERT_TRUE(s->EqualTo(*e));
+}
+
+TEST(SimplifyFoldTest, XZero_BodyZero_NonYZ) {
+  std::shared_ptr<Expr> e = Parse("(fold x 0 (lambda (y z) 0))");
+  std::shared_ptr<Expr> s = Simplify(e);
+  ASSERT_TRUE(s->EqualTo(*ConstantExpr::CreateZero()));
+}
+
+TEST(SimplifyFoldTest, XOne_BodyZero_NonYZ) {
+  std::shared_ptr<Expr> e = Parse("(fold x 1 (lambda (y z) 0))");
+  std::shared_ptr<Expr> s = Simplify(e);
+  ASSERT_TRUE(s->EqualTo(*ConstantExpr::CreateZero()));
+}
+
+TEST(SimplifyFoldTest, XZero_BodyX_NonYZ) {
+  std::shared_ptr<Expr> e = Parse("(fold x 0 (lambda (y z) x))");
+  std::shared_ptr<Expr> s = Simplify(e);
+  ASSERT_TRUE(s->EqualTo(*IdExpr::CreateX()));
+}
+
+TEST(SimplifyFoldTest, XOne_BodyX_NonYZ) {
+  std::shared_ptr<Expr> e = Parse("(fold x 1 (lambda (y z) x))");
+  std::shared_ptr<Expr> s = Simplify(e);
+  ASSERT_TRUE(s->EqualTo(*IdExpr::CreateX()));
+}
+
+TEST(SimplifyFoldTest, XZero_BodyY_AsIs) {
+  std::shared_ptr<Expr> e = Parse("(fold x 0 (lambda (y z) z))");
+  std::shared_ptr<Expr> s = Simplify(e);
+  ASSERT_TRUE(s->EqualTo(*ConstantExpr::CreateZero()));
+}
+
+TEST(SimplifyFoldTest, XOne_BodyY_AsIs) {
+  std::shared_ptr<Expr> e = Parse("(fold x 1 (lambda (y z) z))");
+  std::shared_ptr<Expr> s = Simplify(e);
+  ASSERT_TRUE(s->EqualTo(*ConstantExpr::CreateOne()));
+}
+
+TEST(SimplifyFoldTest, XZero_BodyZ_ReducedToZero) {
+  std::shared_ptr<Expr> e = Parse("(fold x 0 (lambda (y z) z))");
+  std::shared_ptr<Expr> s = Simplify(e);
+  ASSERT_TRUE(s->EqualTo(*ConstantExpr::CreateZero()));
+}
+
+TEST(SimplifyFoldTest, XOne_BodyZ_ReducedToOne) {
+  std::shared_ptr<Expr> e = Parse("(fold x 1 (lambda (y z) z))");
+  std::shared_ptr<Expr> s = Simplify(e);
+  ASSERT_TRUE(s->EqualTo(*ConstantExpr::CreateOne()));
+}
+
+
 // Shift
 
 TEST(SimplifyShiftTest, Shl1_AsIs) {
