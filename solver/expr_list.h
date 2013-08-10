@@ -177,8 +177,7 @@ std::vector<std::shared_ptr<Expr> > ListExpr(
     if (op_type_set & OpType::TFOLD) {
       for (auto& table_d : table)
         for (auto& e : table_d)
-          if (!e->in_fold())
-            result.push_back(LambdaExpr::Create(FoldExpr::CreateTFold(e)));
+          result.push_back(LambdaExpr::Create(FoldExpr::CreateTFold(e)));
     } else {
       for (auto& table_d : table)
         for (auto& e : table_d)
