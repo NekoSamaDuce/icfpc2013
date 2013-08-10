@@ -4,11 +4,15 @@
 #include <glog/logging.h>
 
 #include "expr.h"
+#include "simplify.h"
 
 using namespace icfpc;
 
 DEFINE_uint64(argument, 0, "");
 DEFINE_uint64(expected, 0, "");
+DEFINE_int32(size, 0, "");
+DEFINE_string(operators, "", "List of the operators");
+
 
 static const UnaryOpExpr::Type UNARY_OP_TYPES[] = {
   UnaryOpExpr::Type::NOT,
@@ -25,49 +29,110 @@ static const BinaryOpExpr::Type BINARY_OP_TYPES[] = {
   BinaryOpExpr::Type::PLUS,
 };
 
-std::shared_ptr<Expr> Synthesis(uint64_t argument, uint64_t expected) {
-  // Size -> Output -> Expr
-  std::map<int, std::map<uint64_t, std::shared_ptr<Expr> > > memo;
-  memo[1][0] = ConstantExpr::CreateZero();
-  memo[1][1] = ConstantExpr::CreateOne();
-  memo[1][argument] = IdExpr::CreateX();
+typedef std::pair<std::string, std::shared_ptr<Expr> > MapPair;
+MapPair MakeMapPair(std::shared_ptr<Expr> expr) {
+  return std::make_pair(Simplify(expr)->ToString(), expr);
+}
 
-  for (int expr_size = 2; ; ++expr_size) {
-    LOG(INFO) << "expr_size = " << expr_size;
+std::vector<std::shared_ptr<Expr> > Synthesis(
+    uint64_t argument, uint64_t expected, int max_size, int op_type_set) {
+  // Size -> Output -> Expr
+  //std::map<int, std::map<uint64_t, std::shared_ptr<Expr> > > memo;
+  // Simple form -> Expr
+  std::map<std::string, std::shared_ptr<Expr> > stable;
+  std::map<std::string, std::shared_ptr<Expr> > unstable;
+
+  unstable.insert(MakeMapPair(ConstantExpr::CreateZero()));
+  unstable.insert(MakeMapPair(ConstantExpr::CreateOne()));
+  unstable.insert(MakeMapPair(IdExpr::CreateX()));
+
+  while (!unstable.empty()) {
+    LOG(INFO) << stable.size() << " " << unstable.size();
+    for (const auto& pair : stable) {
+      VLOG(1) << pair.second->ToString();
+    }
+    std::map<std::string, std::shared_ptr<Expr> > fresh;
 
     for (UnaryOpExpr::Type type : UNARY_OP_TYPES) {
-      int arg_size = expr_size - 1;
-      for (const auto& pair : memo[arg_size]) {
+      if ((op_type_set & UnaryOpExpr::ToOpType(type)) == 0) {
+        continue;
+      }
+      for (const auto& pair : unstable) {
         std::shared_ptr<Expr> arg = pair.second;
         std::shared_ptr<Expr> expr = UnaryOpExpr::Create(type, arg);
-        uint64_t output = Eval(*expr, argument);
-        if (output == expected) {
-          return expr;
+        if (static_cast<int>(expr->depth()) > max_size) {
+          continue;
         }
-        memo[expr_size][output] = expr;
+        MapPair map_pair = MakeMapPair(expr);
+        const std::string& fingerprint = map_pair.first;
+        if (stable.count(fingerprint) == 0 &&
+            unstable.count(fingerprint) == 0 &&
+            fresh.count(fingerprint) == 0) {
+          fresh.insert(map_pair);
+        }
       }
+      // LOG(INFO) << "unary" << type;
     }
 
     for (BinaryOpExpr::Type type : BINARY_OP_TYPES) {
-      for (int arg1_size = 1; expr_size - 1 - arg1_size >= 1; ++arg1_size) {
-        int arg2_size = expr_size - 1 - arg1_size;
-        for (const auto& pair1 : memo[arg1_size]) {
-          std::shared_ptr<Expr> arg1 = pair1.second;
-          for (const auto& pair2 : memo[arg2_size]) {
-            std::shared_ptr<Expr> arg2 = pair2.second;
-            std::shared_ptr<Expr> expr = BinaryOpExpr::Create(type, arg1, arg2);
-            uint64_t output = Eval(*expr, argument);
-            if (output == expected) {
-              return expr;
-            }
-            memo[expr_size][output] = expr;
+      if ((op_type_set & BinaryOpExpr::ToOpType(type)) == 0) {
+        continue;
+      }
+
+      // stable x unstable
+      for (const auto& pair1 : stable) {
+        std::shared_ptr<Expr> arg1 = pair1.second;
+        for (const auto& pair2 : unstable) {
+          std::shared_ptr<Expr> arg2 = pair2.second;
+          std::shared_ptr<Expr> expr = BinaryOpExpr::Create(type, arg1, arg2);
+          if (static_cast<int>(expr->depth()) > max_size) {
+            continue;
+          }
+          MapPair map_pair = MakeMapPair(expr);
+          const std::string& fingerprint = map_pair.first;
+          if (stable.count(fingerprint) == 0 &&
+              unstable.count(fingerprint) == 0 &&
+              fresh.count(fingerprint) == 0) {
+            fresh.insert(map_pair);
+          }
+        }
+      }
+      
+      // unstable x unstable
+      for (const auto& pair1 : unstable) {
+        std::shared_ptr<Expr> arg1 = pair1.second;
+        for (const auto& pair2 : unstable) {
+          std::shared_ptr<Expr> arg2 = pair2.second;
+          std::shared_ptr<Expr> expr = BinaryOpExpr::Create(type, arg1, arg2);
+          if (static_cast<int>(expr->depth()) > max_size) {
+            continue;
+          }
+          MapPair map_pair = MakeMapPair(expr);
+          const std::string& fingerprint = map_pair.first;
+          if (stable.count(fingerprint) == 0 &&
+              unstable.count(fingerprint) == 0 &&
+              fresh.count(fingerprint) == 0) {
+            fresh.insert(map_pair);
           }
         }
       }
     }
 
-    LOG(INFO) << "memo[" << expr_size << "].size = " << memo[expr_size].size();
+    for (const auto& pair : unstable) {
+      stable.insert(pair);
+    }
+    std::swap(unstable, fresh);
   }
+
+  std::vector<std::shared_ptr<Expr> > results;
+  for (const auto& pair : stable) {
+    std::shared_ptr<Expr> expr = pair.second;
+    if (Eval(*expr, argument) == expected) {
+      results.push_back(expr);
+    }
+  }
+
+  return results;
 }
 
 int main(int argc, char* argv[]) {
@@ -76,8 +141,13 @@ int main(int argc, char* argv[]) {
   google::ParseCommandLineFlags(&argc, &argv, true);
   std::ios::sync_with_stdio(false);
 
-  std::shared_ptr<Expr> expr = Synthesis(FLAGS_argument, FLAGS_expected);
-  std::cout << *expr << std::endl;
+  int op_type_set = ParseOpTypeSet(FLAGS_operators);
+
+  std::vector<std::shared_ptr<Expr> > exprs = Synthesis(
+      FLAGS_argument, FLAGS_expected, FLAGS_size, op_type_set);
+  for (std::shared_ptr<Expr> expr : exprs) {
+    std::cout << *expr << std::endl;
+  }
 
   return 0;
 }

@@ -23,7 +23,7 @@ simplify_main: simplify_main.cc expr.h expr_list.h cluster.h simplify.h
 batch_evaluate: batch_evaluate.cc expr.h expr_list.h parser.h
 	$(CXX) $< $(CXXFLAGS) -o $@
 
-synthesis: synthesis.cc expr.h
+synthesis: synthesis.cc expr.h simplify.h
 	$(CXX) $< $(CXXFLAGS) -o $@
 
 unittest: unittest.cc test_eval.cc libgtest.a expr.h expr_list.h parser.h
