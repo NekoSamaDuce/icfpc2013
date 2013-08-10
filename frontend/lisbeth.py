@@ -32,8 +32,11 @@ def BruteForceGuessOrDie(problem, programs):
     logging.info('=== %s', program)
     try:
       example = api.Guess(problem.id, program)
-      logging.info('rejected. argument=0x%016x, expected=0x%016x, actual=0x%016x',
-                   example.argument, example.expected, example.actual)
+      if example:
+        logging.info('rejected. argument=0x%016x, expected=0x%016x, actual=0x%016x',
+                     example.argument, example.expected, example.actual)
+      else:
+        logging.info('rejected, but could not get a counterexample.')
     except api.Solved:
       logging.info('')
       logging.info(u'*\u30fb\u309c\uff9f\uff65*:.\uff61. '

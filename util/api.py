@@ -135,7 +135,8 @@ def Guess(id, program, auto_retry=True):
   request = {'id': id, 'program': program}
   s = GenericRequest('guess', request)
   if s['status'] == 'error':
-    raise ApiError(str(s['message']))
+    logging.error('/guess returned and error: %s', s['message'])
+    return None  # no counter example
   if s['status'] == 'win':
     raise Solved(id)
   assert s['status'] == 'mismatch'

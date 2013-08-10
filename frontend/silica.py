@@ -74,10 +74,13 @@ def BruteForceGuessOrDie(problem, programs):
                    u' .\uff61.:*\uff65\u309c\uff9f\uff65*:')
       logging.info('')
       return
-    logging.info('rejected. argument=0x%016x, expected=0x%016x, actual=0x%016x',
-                 example.argument, example.expected, example.actual)
-    if FLAGS.counterexample_filter:
-      programs = FilterProgramsWithCounterExample(programs, example)
+    if example:
+      logging.info('rejected. argument=0x%016x, expected=0x%016x, actual=0x%016x',
+                   example.argument, example.expected, example.actual)
+      if FLAGS.counterexample_filter:
+        programs = FilterProgramsWithCounterExample(programs, example)
+    else:
+      logging.info('rejected, but could not get a counterexample.')
   logging.error('************************************')
   logging.error('NO PROGRAM WAS ACCEPTED. DEAD END...')
   logging.error('************************************')
