@@ -22,7 +22,7 @@ std::vector<std::shared_ptr<Expr> > SimplifyExprList(
     if (result.second) {
       result_list.push_back(e);
     } else {
-      LOG(INFO) << e->ToString() << " is reduced to " << *result.first;
+      //LOG(INFO) << e->ToString() << " is reduced to " << *result.first;
     }
   }
   return result_list;

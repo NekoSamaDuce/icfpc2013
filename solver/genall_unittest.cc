@@ -14,7 +14,7 @@ TEST(GenAllTest, A) {
   std::vector<std::shared_ptr<Expr> > result_old = old::ListExpr(size, op_type_set);
   EXPECT_EQ(result_old.size(), result.size());
   for (size_t i = 0; i < result.size(); ++i)
-    EXPECT_TRUE(result[i]->EqualTo(*result_old[i]));
+    ASSERT_TRUE(result[i]->EqualTo(*result_old[i]));
 }
 
 TEST(GenAllTest, B) {
@@ -24,7 +24,7 @@ TEST(GenAllTest, B) {
   std::vector<std::shared_ptr<Expr> > result_old = old::ListExpr(size, op_type_set);
   EXPECT_EQ(result_old.size(), result.size());
   for (size_t i = 0; i < result.size(); ++i)
-    EXPECT_TRUE(result[i]->EqualTo(*result_old[i]));
+    ASSERT_TRUE(result[i]->EqualTo(*result_old[i]));
 }
 
 TEST(GenAllTest, C) {
@@ -34,7 +34,7 @@ TEST(GenAllTest, C) {
   std::vector<std::shared_ptr<Expr> > result_old = old::ListExpr(size, op_type_set);
   EXPECT_EQ(result_old.size(), result.size());
   for (size_t i = 0; i < result.size(); ++i)
-    EXPECT_TRUE(result[i]->EqualTo(*result_old[i]));
+    ASSERT_TRUE(result[i]->EqualTo(*result_old[i]));
 }
 
 TEST(GenAllTest, D) {
@@ -44,7 +44,7 @@ TEST(GenAllTest, D) {
   std::vector<std::shared_ptr<Expr> > result_old = old::ListExpr(size, op_type_set);
   EXPECT_EQ(result_old.size(), result.size());
   for (size_t i = 0; i < result.size(); ++i)
-    EXPECT_TRUE(result[i]->EqualTo(*result_old[i]));
+    ASSERT_TRUE(result[i]->EqualTo(*result_old[i]));
 }
 
 TEST(GenAllTest, E) {
@@ -54,7 +54,7 @@ TEST(GenAllTest, E) {
   std::vector<std::shared_ptr<Expr> > result_old = old::ListExpr(size, op_type_set);
   EXPECT_EQ(result_old.size(), result.size());
   for (size_t i = 0; i < result.size(); ++i)
-    EXPECT_TRUE(result[i]->EqualTo(*result_old[i]));
+    ASSERT_TRUE(result[i]->EqualTo(*result_old[i]));
 }
 
 TEST(GenAllTest, F) {
@@ -64,7 +64,7 @@ TEST(GenAllTest, F) {
   std::vector<std::shared_ptr<Expr> > result_old = old::ListExpr(size, op_type_set);
   EXPECT_EQ(result_old.size(), result.size());
   for (size_t i = 0; i < result.size(); ++i)
-    EXPECT_TRUE(result[i]->EqualTo(*result_old[i]));
+    ASSERT_TRUE(result[i]->EqualTo(*result_old[i]));
 }
 
 TEST(GenAllTest, G) {
@@ -74,7 +74,7 @@ TEST(GenAllTest, G) {
   std::vector<std::shared_ptr<Expr> > result_old = old::ListExpr(size, op_type_set);
   EXPECT_EQ(result_old.size(), result.size());
   for (size_t i = 0; i < result.size(); ++i)
-    EXPECT_TRUE(result[i]->EqualTo(*result_old[i]));
+    ASSERT_TRUE(result[i]->EqualTo(*result_old[i]));
 }
 
 int main(int argc, char **argv) {
