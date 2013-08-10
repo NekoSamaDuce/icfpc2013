@@ -42,15 +42,15 @@ TEST(SimplifyOrTest, NotXNotX_ReducedToZero) {
 TEST(SimplifyOrTest, NotXX_AsIs) {
   std::shared_ptr<Expr> e = Parse("(or (not x) x)");
   std::shared_ptr<Expr> s = Simplify(e);
-  LOG(WARNING) << "It can be ~0?";
-  ASSERT_TRUE(s->EqualTo(*e));
+  ASSERT_EQ(s->op_type(), CONSTANT);
+  ASSERT_EQ(std::static_pointer_cast<ConstantExpr>(s)->value(), g_fullbits);
 }
 
 TEST(SimplifyOrTest, XNotX_Swapped) {
   std::shared_ptr<Expr> e = Parse("(or x (not x))");
   std::shared_ptr<Expr> s = Simplify(e);
-  LOG(WARNING) << "It can be ~0?";
-  ASSERT_TRUE(s->EqualTo(*Parse("(or (not x) x)")));
+  ASSERT_EQ(s->op_type(), CONSTANT);
+  ASSERT_EQ(std::static_pointer_cast<ConstantExpr>(s)->value(), g_fullbits);
 }
 
 TEST(SimplifyOrTest, XX_ReducedToX) {
@@ -262,15 +262,15 @@ TEST(SimplifyAndTest, NotXNotX_ReducedToZero) {
 TEST(SimplifyAndTest, NotXX_AsIs) {
   std::shared_ptr<Expr> e = Parse("(and (not x) x)");
   std::shared_ptr<Expr> s = Simplify(e);
-  LOG(WARNING) << "It can be 0?";
-  ASSERT_TRUE(s->EqualTo(*e));
+  ASSERT_EQ(s->op_type(), CONSTANT);
+  ASSERT_EQ(std::static_pointer_cast<ConstantExpr>(s)->value(), 0U);
 }
 
 TEST(SimplifyAndTest, XNotX_Swapped) {
   std::shared_ptr<Expr> e = Parse("(and x (not x))");
   std::shared_ptr<Expr> s = Simplify(e);
-  LOG(WARNING) << "It can be 0?";
-  ASSERT_TRUE(s->EqualTo(*Parse("(and (not x) x)")));
+  ASSERT_EQ(s->op_type(), CONSTANT);
+  ASSERT_EQ(std::static_pointer_cast<ConstantExpr>(s)->value(), 0U);
 }
 
 TEST(SimplifyAndTest, XX_ReducedToX) {
@@ -482,15 +482,15 @@ TEST(SimplifyXorTest, NotXNotX_ReducedToZero) {
 TEST(SimplifyXorTest, NotXX_AsIs) {
   std::shared_ptr<Expr> e = Parse("(xor (not x) x)");
   std::shared_ptr<Expr> s = Simplify(e);
-  LOG(WARNING) << "It can be ~0?";
-  ASSERT_TRUE(s->EqualTo(*e));
+  ASSERT_EQ(s->op_type(), CONSTANT);
+  ASSERT_EQ(std::static_pointer_cast<ConstantExpr>(s)->value(), g_fullbits);
 }
 
 TEST(SimplifyXorTest, XNotX_Swapped) {
   std::shared_ptr<Expr> e = Parse("(xor x (not x))");
   std::shared_ptr<Expr> s = Simplify(e);
-  LOG(WARNING) << "It can be ~0?";
-  ASSERT_TRUE(s->EqualTo(*Parse("(xor (not x) x)")));
+  ASSERT_EQ(s->op_type(), CONSTANT);
+  ASSERT_EQ(std::static_pointer_cast<ConstantExpr>(s)->value(), g_fullbits);
 }
 
 TEST(SimplifyXorTest, XX_ReducedToZero) {
@@ -724,44 +724,17 @@ TEST(SimplifyPlusTest, NotXNotX_AsIs) {
 }
 
 TEST(SimplifyPlusTest, NotXX_AsIs) {
-  std::shared_ptr<BinaryOpExpr> e =
-    BinaryOpExpr::Create(BinaryOpExpr::Type::PLUS,
-                         UnaryOpExpr::Create(UnaryOpExpr::Type::NOT,
-                                             IdExpr::CreateX()),
-                         IdExpr::CreateX());
+  std::shared_ptr<Expr> e = Parse("(plus (not x) x)");
   std::shared_ptr<Expr> s = Simplify(e);
-  ASSERT_EQ(s->op_type(), PLUS);
-  std::shared_ptr<BinaryOpExpr> t = std::static_pointer_cast<BinaryOpExpr>(s);
-
-  std::shared_ptr<Expr> s_arg1 = t->arg1();
-  ASSERT_EQ(s_arg1->op_type(), NOT);
-  std::shared_ptr<Expr> s_arg1_arg = std::static_pointer_cast<UnaryOpExpr>(t->arg1())->arg();
-  ASSERT_EQ(s_arg1_arg->op_type(), ID);
-  ASSERT_EQ(std::static_pointer_cast<IdExpr>(s_arg1_arg)->name(), IdExpr::Name::X);
-  std::shared_ptr<Expr> s_arg2 = t->arg2();
-  ASSERT_EQ(s_arg2->op_type(), ID);
-  ASSERT_EQ(std::static_pointer_cast<IdExpr>(s_arg2)->name(), IdExpr::Name::X);
+  ASSERT_EQ(s->op_type(), CONSTANT);
+  ASSERT_EQ(std::static_pointer_cast<ConstantExpr>(s)->value(), g_fullbits);
 }
 
 TEST(SimplifyPlusTest, XNotX_Swapped) {
-  std::shared_ptr<BinaryOpExpr> e =
-    BinaryOpExpr::Create(BinaryOpExpr::Type::PLUS,
-                         IdExpr::CreateX(),
-                         UnaryOpExpr::Create(UnaryOpExpr::Type::NOT,
-                                             IdExpr::CreateX()));
+  std::shared_ptr<Expr> e = Parse("(plus x (not x))");
   std::shared_ptr<Expr> s = Simplify(e);
-  ASSERT_EQ(s->op_type(), PLUS);
-  std::shared_ptr<BinaryOpExpr> t = std::static_pointer_cast<BinaryOpExpr>(s);
-
-  // Swapped.
-  std::shared_ptr<Expr> s_arg1 = t->arg1();
-  ASSERT_EQ(s_arg1->op_type(), NOT);
-  std::shared_ptr<Expr> s_arg1_arg = std::static_pointer_cast<UnaryOpExpr>(t->arg1())->arg();
-  ASSERT_EQ(s_arg1_arg->op_type(), ID);
-  ASSERT_EQ(std::static_pointer_cast<IdExpr>(s_arg1_arg)->name(), IdExpr::Name::X);
-  std::shared_ptr<Expr> s_arg2 = t->arg2();
-  ASSERT_EQ(s_arg2->op_type(), ID);
-  ASSERT_EQ(std::static_pointer_cast<IdExpr>(s_arg2)->name(), IdExpr::Name::X);
+  ASSERT_EQ(s->op_type(), CONSTANT);
+  ASSERT_EQ(std::static_pointer_cast<ConstantExpr>(s)->value(), g_fullbits);
 }
 
 TEST(SimplifyPlusTest, XX_AsIs) {
