@@ -10,10 +10,3 @@ using namespace icfpc;
 TEST(EvalTest, Foo) {
   ASSERT_TRUE(false) << "kaite mita dake";
 }
-
-int main(int argc, char **argv) {
-  google::InstallFailureSignalHandler();
-  google::InitGoogleLogging(argv[0]);
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}
