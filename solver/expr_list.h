@@ -48,7 +48,7 @@ std::vector<std::shared_ptr<Expr> > ListExprInternal(
   // Binary.
   if (depth >= 3 &&
       (op_type_set & (OpType::AND | OpType::OR | OpType::XOR | OpType::PLUS))) {
-    for (std::size_t i = 1; i < depth - 1; ++i) {
+    for (std::size_t i = 1; i < depth - 1; ++i) if (i <= depth - 1 - i) { // Only emit smaller left
       for (auto& lhs : table[i]) {
         for (auto& rhs : table[depth - 1 - i]) {
           if (op_type_set & OpType::AND)
