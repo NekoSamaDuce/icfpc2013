@@ -71,7 +71,8 @@ def GetProblemsByFlags():
   for i, problem in enumerate(problems):
     logging.info('%d. %s size=%d operators=%s',
                  i+1, problem.id, problem.size, ','.join(problem.operators))
-  logging.info('Enter "go" to continue.')
-  while raw_input() != 'go':
-    pass
+  if FLAGS.mode != 'train':
+    logging.info('Enter "go" to continue.')
+    while raw_input() != 'go':
+      pass
   return problems
