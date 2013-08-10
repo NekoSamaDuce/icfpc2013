@@ -40,8 +40,11 @@ struct Env {
   uint64_t z;
 };
 
+class Expr;
+std::shared_ptr<Expr> BuildSimplified(const Expr& expr);
+
 // An interface of the expression.
-class Expr {
+class Expr : public std::enable_shared_from_this<Expr> {
  public:
   virtual ~Expr() {
   }
@@ -61,6 +64,14 @@ class Expr {
 
   // Returns the set of OpType, including the ones for subtrees.
   int op_type_set() const { return op_type_set_; }
+
+  std::shared_ptr<Expr> simplified() {
+    if (!is_simplified_) {
+      simplified_ = BuildSimplified(*this);
+      is_simplified_ = true;
+    }
+    return simplified_.get() ? simplified_ : shared_from_this();
+  }
 
   uint64_t Eval(const Env& env) const {
     return EvalImpl(env);
@@ -85,7 +96,7 @@ class Expr {
   Expr(OpType op_type, int op_type_set, std::size_t depth,
        bool in_fold, bool has_fold)
       : op_type_(op_type), op_type_set_(op_type_set), depth_(depth),
-        in_fold_(in_fold), has_fold_(has_fold) {}
+        in_fold_(in_fold), has_fold_(has_fold), is_simplified_(false) {}
   virtual void Output(std::ostream* os) const = 0;
   virtual uint64_t EvalImpl(const Env& env) const = 0;
   virtual bool EqualToImpl(const Expr& other) const = 0;
@@ -97,6 +108,9 @@ class Expr {
   std::size_t depth_;
   bool in_fold_;
   bool has_fold_;
+
+  bool is_simplified_;
+  std::shared_ptr<Expr> simplified_;
 
   DISALLOW_COPY_AND_ASSIGN(Expr);
 };
@@ -118,6 +132,12 @@ class LambdaExpr : public Expr {
 
   static std::shared_ptr<LambdaExpr> Create(std::shared_ptr<Expr> body) {
     return std::make_shared<LambdaExpr>(body);
+  }
+
+  static std::shared_ptr<LambdaExpr> CreateSimplified(std::shared_ptr<Expr> body) {
+    std::shared_ptr<LambdaExpr> expr = Create(body);
+    expr->is_simplified_ = true;
+    return expr;
   }
 
   const std::shared_ptr<Expr>& body() const { return body_; }
@@ -146,7 +166,9 @@ class LambdaExpr : public Expr {
 class ConstantExpr : public Expr {
  public:
   explicit ConstantExpr(uint64_t value)
-      : Expr(OpType::CONSTANT, 0, 1, false, false), value_(value) {}
+      : Expr(OpType::CONSTANT, 0, 1, false, false), value_(value) {
+    is_simplified_ = true;
+  }
 
   static std::shared_ptr<ConstantExpr> Create(uint64_t value) {
     if (value == 0) return CreateZero();
@@ -196,6 +218,7 @@ class IdExpr : public Expr {
 
   explicit IdExpr(Name name) :
       Expr(OpType::ID, 0, 1, name != Name::X, false), name_(name) {
+    is_simplified_ = true;
   }
 
   static std::shared_ptr<IdExpr> Create(Name name) {
@@ -276,6 +299,14 @@ class If0Expr : public Expr {
     return std::make_shared<If0Expr>(cond, then_body, else_body);
   }
 
+  static std::shared_ptr<If0Expr> CreateSimplified(std::shared_ptr<Expr> cond,
+                                                   std::shared_ptr<Expr> then_body,
+                                                   std::shared_ptr<Expr> else_body) {
+    std::shared_ptr<If0Expr> expr = Create(cond, then_body, else_body);
+    expr->is_simplified_ = true;
+    return expr;
+  }
+
   const std::shared_ptr<Expr>& cond() const { return cond_; }
   const std::shared_ptr<Expr>& then_body() const { return then_body_; }
   const std::shared_ptr<Expr>& else_body() const { return else_body_; }
@@ -345,6 +376,20 @@ class FoldExpr : public Expr {
     return std::make_shared<FoldExpr>(body);
   }
 
+  static std::shared_ptr<FoldExpr> CreateSimplified(std::shared_ptr<Expr> value,
+                                                    std::shared_ptr<Expr> init_value,
+                                                    std::shared_ptr<Expr> body) {
+    std::shared_ptr<FoldExpr> expr = Create(value, init_value, body);
+    expr->is_simplified_ = true;
+    return expr;
+  }
+
+  static std::shared_ptr<FoldExpr> CreateTFoldSimplified(std::shared_ptr<Expr> body) {
+    std::shared_ptr<FoldExpr> expr = CreateTFold(body);
+    expr->is_simplified_ = true;
+    return expr;
+  }
+
   const std::shared_ptr<Expr>& value() const { return value_; }
   const std::shared_ptr<Expr>& init_value() const { return init_value_; }
   const std::shared_ptr<Expr>& body() const { return body_; }
@@ -396,6 +441,18 @@ class UnaryOpExpr : public Expr {
     NOT, SHL1, SHR1, SHR4, SHR16,
   };
 
+  static OpType ToOpType(Type type) {
+    switch (type) {
+      case Type::NOT: return OpType::NOT;
+      case Type::SHL1: return OpType::SHL1;
+      case Type::SHR1: return OpType::SHR1;
+      case Type::SHR4: return OpType::SHR4;
+      case Type::SHR16: return OpType::SHR16;
+      default: NOTREACHED();
+    }
+    return static_cast<OpType>(-1);
+  }
+
   UnaryOpExpr(Type type, std::shared_ptr<Expr> arg)
       : Expr(ToOpType(type), ToOpType(type) | arg->op_type_set(),
              1 + arg->depth(), arg->in_fold(), arg->has_fold()),
@@ -404,6 +461,12 @@ class UnaryOpExpr : public Expr {
 
   static std::shared_ptr<UnaryOpExpr> Create(Type type, std::shared_ptr<Expr> arg) {
     return std::make_shared<UnaryOpExpr>(type, arg);
+  }
+
+  static std::shared_ptr<UnaryOpExpr> CreateSimplified(Type type, std::shared_ptr<Expr> arg) {
+    std::shared_ptr<UnaryOpExpr> expr = Create(type, arg);
+    expr->is_simplified_ = true;
+    return expr;
   }
 
   Type type() const { return type_; }
@@ -449,17 +512,6 @@ class UnaryOpExpr : public Expr {
   }
 
  private:
-  static OpType ToOpType(Type type) {
-    switch (type) {
-      case Type::NOT: return OpType::NOT;
-      case Type::SHL1: return OpType::SHL1;
-      case Type::SHR1: return OpType::SHR1;
-      case Type::SHR4: return OpType::SHR4;
-      case Type::SHR16: return OpType::SHR16;
-      default: NOTREACHED();
-    }
-    return static_cast<OpType>(-1);
-  }
   Type type_;
   std::shared_ptr<Expr> arg_;
 };
@@ -469,6 +521,17 @@ class BinaryOpExpr : public Expr {
   enum class Type {
     AND, OR, XOR, PLUS,
   };
+
+  static OpType ToOpType(Type type) {
+    switch(type) {
+      case Type::AND: return OpType::AND;
+      case Type::OR: return OpType::OR;
+      case Type::XOR: return OpType::XOR;
+      case Type::PLUS: return OpType::PLUS;
+      default: NOTREACHED();
+    }
+    return static_cast<OpType>(-1);
+  }
 
   BinaryOpExpr(Type type, std::shared_ptr<Expr> arg1, std::shared_ptr<Expr> arg2)
       : Expr(ToOpType(type), ToOpType(type) | arg1->op_type_set() | arg2->op_type_set(),
@@ -481,6 +544,13 @@ class BinaryOpExpr : public Expr {
   static std::shared_ptr<BinaryOpExpr> Create(
       Type type, std::shared_ptr<Expr> arg1, std::shared_ptr<Expr> arg2) {
     return std::make_shared<BinaryOpExpr>(type, arg1, arg2);
+  }
+
+  static std::shared_ptr<BinaryOpExpr> CreateSimplified(
+      Type type, std::shared_ptr<Expr> arg1, std::shared_ptr<Expr> arg2) {
+    std::shared_ptr<BinaryOpExpr> expr = Create(type, arg1, arg2);
+    expr->is_simplified_ = true;
+    return expr;
   }
 
   Type type() const { return type_; }
@@ -528,17 +598,6 @@ class BinaryOpExpr : public Expr {
   }
 
  private:
-  static OpType ToOpType(Type type) {
-    switch(type) {
-      case Type::AND: return OpType::AND;
-      case Type::OR: return OpType::OR;
-      case Type::XOR: return OpType::XOR;
-      case Type::PLUS: return OpType::PLUS;
-      default: NOTREACHED();
-    }
-    return static_cast<OpType>(-1);
-  }
-
   Type type_;
   std::shared_ptr<Expr> arg1_;
   std::shared_ptr<Expr> arg2_;
@@ -603,6 +662,459 @@ int ParseOpTypeSet(const std::string& s) {
     op_type_set |= ParseOpType(op);
   }
   return op_type_set;
+}
+
+bool MatchConstant(const Expr& expr, uint64_t* value) {
+  if (expr.op_type() != OpType::CONSTANT) {
+    return false;
+  }
+
+  *value = static_cast<const ConstantExpr&>(expr).value();
+  return true;
+}
+
+bool MatchUnaryOp(const Expr& expr, UnaryOpExpr::Type type, std::shared_ptr<Expr>* arg) {
+  if (expr.op_type() != UnaryOpExpr::ToOpType(type)) {
+    return false;
+  }
+
+  *arg = static_cast<const UnaryOpExpr&>(expr).arg();
+  return true;
+}
+
+bool MatchBinaryOp(const Expr& expr, BinaryOpExpr::Type type,
+                   std::shared_ptr<Expr>* arg1, std::shared_ptr<Expr>* arg2) {
+  if (expr.op_type() != BinaryOpExpr::ToOpType(type)) {
+    return false;
+  }
+
+  const BinaryOpExpr& bin_expr = static_cast<const BinaryOpExpr&>(expr);
+  *arg1 = bin_expr.arg1();
+  *arg2 = bin_expr.arg2();
+  return true;
+}
+
+std::shared_ptr<Expr> BuildLambdaSimplified(const LambdaExpr& expr) {
+  std::shared_ptr<Expr> body = expr.body();
+  std::shared_ptr<Expr> simplified_body = body->simplified();
+  if (body == simplified_body) {
+    return std::shared_ptr<Expr>();
+  }
+
+  return LambdaExpr::CreateSimplified(simplified_body);
+}
+
+std::shared_ptr<Expr> BuildIf0Simplified(const If0Expr& expr) {
+  std::shared_ptr<Expr> simplified_cond = expr.cond()->simplified();
+
+  // Constant folding.
+  uint64_t value;
+  if (MatchConstant(*simplified_cond, &value)) {
+    return (value == 0) ? expr.then_body()->simplified() : expr.else_body()->simplified();
+  }
+
+  // The value of cond can be changed, but trivially not 0.
+  std::shared_ptr<Expr> arg1, arg2;
+  if (MatchBinaryOp(*simplified_cond, BinaryOpExpr::Type::OR, &arg1, &arg2)) {
+    if ((MatchConstant(*arg1, &value) && value != 0) ||
+        (MatchConstant(*arg2, &value) && value != 0)) {
+      return expr.else_body()->simplified();
+    }
+  }
+
+  // (If0 cond E E) -> E
+  std::shared_ptr<Expr> simplified_then_body = expr.then_body()->simplified();
+  std::shared_ptr<Expr> simplified_else_body = expr.else_body()->simplified();
+  if (simplified_then_body->EqualTo(*simplified_else_body)) {
+    return simplified_then_body;
+  }
+
+  // TODO (If0 x A B) -> (If0 x ([x/0]A) B)
+
+  if (expr.cond() == simplified_cond &&
+      expr.then_body() == simplified_then_body &&
+      expr.else_body() == simplified_else_body) {
+    return std::shared_ptr<Expr>();
+  }
+
+  return If0Expr::CreateSimplified(simplified_cond, simplified_then_body, simplified_else_body);
+}
+
+std::shared_ptr<Expr> BuildFoldSimplified(const FoldExpr& expr) {
+  if (expr.op_type_set() & OpType::TFOLD) {
+    // Special handling for TFOLD.
+    std::shared_ptr<Expr> simplified_body = expr.body()->simplified();
+    if (expr.body() == simplified_body) {
+      return std::shared_ptr<Expr>();
+    }
+
+    return FoldExpr::CreateTFoldSimplified(simplified_body);
+  }
+
+  std::shared_ptr<Expr> simplified_value = expr.value()->simplified();
+  std::shared_ptr<Expr> simplified_init_value = expr.init_value()->simplified();
+  std::shared_ptr<Expr> simplified_body = expr.body()->simplified();
+
+  if (expr.value() == simplified_value &&
+      expr.init_value() == simplified_init_value &&
+      expr.body() == simplified_body) {
+    return std::shared_ptr<Expr>();
+  }
+
+  return FoldExpr::CreateSimplified(simplified_value, simplified_init_value, simplified_body);
+}
+
+std::shared_ptr<Expr> BuildNotSimplified(const UnaryOpExpr& expr) {
+  std::shared_ptr<Expr> simplified_arg = expr.arg()->simplified();
+
+  // Constant folding.
+  uint64_t value;
+  if (MatchConstant(*simplified_arg, &value)) {
+    return ConstantExpr::Create(~value);
+  }
+
+  // not (not X) -> X
+  std::shared_ptr<Expr> nested_arg;
+  if (MatchUnaryOp(*simplified_arg, UnaryOpExpr::Type::NOT, &nested_arg)) {
+    return nested_arg;
+  }
+
+  // TODO simplify binary op. Simplify If.
+
+  if (expr.arg() == simplified_arg) {
+    return std::shared_ptr<Expr>();
+  }
+
+  return UnaryOpExpr::CreateSimplified(UnaryOpExpr::Type::NOT, simplified_arg);
+}
+
+std::shared_ptr<Expr> BuildShl1Simplified(const UnaryOpExpr& expr) {
+  std::shared_ptr<Expr> simplified_arg = expr.arg()->simplified();
+
+  // Constant folding.
+  uint64_t value;
+  if (MatchConstant(*simplified_arg, &value)) {
+    return ConstantExpr::Create(value << 1);
+  }
+
+  // TODO simplify binary op, Simplify If.
+
+  if (expr.arg() == simplified_arg) {
+    return std::shared_ptr<Expr>();
+  }
+
+  return UnaryOpExpr::CreateSimplified(UnaryOpExpr::Type::SHL1, simplified_arg);
+}
+
+std::shared_ptr<Expr> BuildShr1Simplified(const UnaryOpExpr& expr) {
+  std::shared_ptr<Expr> simplified_arg = expr.arg()->simplified();
+
+  // Constant folding.
+  uint64_t value;
+  if (MatchConstant(*simplified_arg, &value)) {
+    return ConstantExpr::Create(value >> 1);
+  }
+
+  // TODO simplify binary op, Simplify If.
+
+  if (expr.arg() == simplified_arg) {
+    return std::shared_ptr<Expr>();
+  }
+
+  return UnaryOpExpr::CreateSimplified(UnaryOpExpr::Type::SHR1, simplified_arg);
+}
+
+std::shared_ptr<Expr> BuildShr4Simplified(const UnaryOpExpr& expr) {
+  std::shared_ptr<Expr> simplified_arg = expr.arg()->simplified();
+
+  // Constant folding.
+  uint64_t value;
+  if (MatchConstant(*simplified_arg, &value)) {
+    return ConstantExpr::Create(value >> 4);
+  }
+
+  // Sort SHR1, SHR4, SHR16.
+  std::shared_ptr<Expr> nested_arg;
+  if (MatchUnaryOp(*simplified_arg, UnaryOpExpr::Type::SHR1, &nested_arg)) {
+    return UnaryOpExpr::CreateSimplified(
+        UnaryOpExpr::Type::SHR1,
+        UnaryOpExpr::Create(UnaryOpExpr::Type::SHR4, nested_arg)->simplified());
+  }
+
+  // TODO binary op. TODO If.
+
+  if (expr.arg() == simplified_arg) {
+    return std::shared_ptr<Expr>();
+  }
+  return UnaryOpExpr::CreateSimplified(UnaryOpExpr::Type::SHR4, simplified_arg);
+}
+
+std::shared_ptr<Expr> BuildShr16Simplified(const UnaryOpExpr& expr) {
+  std::shared_ptr<Expr> simplified_arg = expr.arg()->simplified();
+
+  // Constant folding.
+  uint64_t value;
+  if (MatchConstant(*simplified_arg, &value)) {
+    return ConstantExpr::Create(value >> 4);
+  }
+
+  // Sort SHR1, SHR4, SHR16.
+  std::shared_ptr<Expr> nested_arg;
+  if (MatchUnaryOp(*simplified_arg, UnaryOpExpr::Type::SHR1, &nested_arg)) {
+    return UnaryOpExpr::CreateSimplified(
+        UnaryOpExpr::Type::SHR1,
+        UnaryOpExpr::Create(UnaryOpExpr::Type::SHR16, nested_arg)->simplified());
+  }
+
+  if (MatchUnaryOp(*simplified_arg, UnaryOpExpr::Type::SHR4, &nested_arg)) {
+    return UnaryOpExpr::CreateSimplified(
+        UnaryOpExpr::Type::SHR4,
+        UnaryOpExpr::Create(UnaryOpExpr::Type::SHR16, nested_arg)->simplified());
+  }
+
+  // TODO binary op. TODO If.
+
+  if (expr.arg() == simplified_arg) {
+    return std::shared_ptr<Expr>();
+  }
+  return UnaryOpExpr::CreateSimplified(UnaryOpExpr::Type::SHR16, simplified_arg);
+}
+
+std::shared_ptr<Expr> BuildAndSimplified(const BinaryOpExpr& expr) {
+  // In case, either operand is just 0, we don't need to think about the operands' simplification.
+  uint64_t value;
+  if ((MatchConstant(*expr.arg1(), &value) && value == 0) ||
+      (MatchConstant(*expr.arg2(), &value) && value == 0)) {
+    return ConstantExpr::Create(0);
+  }
+
+  // (and 0 X) -> 0
+  std::shared_ptr<Expr> simplified_arg1 = expr.arg1()->simplified();
+  if (MatchConstant(*simplified_arg1, &value) && value == 0) {
+    return ConstantExpr::Create(0);
+  }
+
+  // (and X 0) -> 0
+  std::shared_ptr<Expr> simplified_arg2 = expr.arg2()->simplified();
+  if (MatchConstant(*simplified_arg2, &value) && value == 0) {
+    return ConstantExpr::Create(0);
+  }
+
+  // (and 0xFFFFFFFFFFFFFFFF X) -> X
+  if (MatchConstant(*simplified_arg1, &value) && value == 0xFFFFFFFFFFFFFFFF) {
+    return simplified_arg2;
+  }
+
+  // (and X 0xFFFFFFFFFFFFFFFF) -> X
+  if (MatchConstant(*simplified_arg2, &value) && value == 0xFFFFFFFFFFFFFFFF) {
+    return simplified_arg1;
+  }
+
+  // Constant folding.
+  uint64_t value1, value2;
+  if (MatchConstant(*simplified_arg1, &value1) && MatchConstant(*simplified_arg2, &value2)) {
+    return ConstantExpr::Create(value1 & value2);
+  }
+
+  int cmp = simplified_arg1->CompareTo(*simplified_arg2);
+
+  // (and X X) -> X
+  if (cmp == 0) {
+    return simplified_arg1;
+  }
+
+  // Normalize the operand order.
+  if (cmp > 0) {
+    std::swap(simplified_arg1, simplified_arg2);
+  }
+
+  if (expr.arg1() == simplified_arg1 &&
+      expr.arg2() == simplified_arg2) {
+    return std::shared_ptr<Expr>();
+  }
+
+  return BinaryOpExpr::CreateSimplified(BinaryOpExpr::Type::AND, simplified_arg1, simplified_arg2);
+}
+
+std::shared_ptr<Expr> BuildOrSimplified(const BinaryOpExpr& expr) {
+  // In case, either operand is just 0xFFFFFFFFFFFFFFFF, we don't need to think about the operands'
+  // simplification.
+  uint64_t value;
+  if ((MatchConstant(*expr.arg1(), &value) && value == 0xFFFFFFFFFFFFFFFF) ||
+      (MatchConstant(*expr.arg2(), &value) && value == 0xFFFFFFFFFFFFFFFF)) {
+    return ConstantExpr::Create(0xFFFFFFFFFFFFFFFF);
+  }
+
+  // (or 0xFFFFFFFFFFFFFFFF X) -> 0xFFFFFFFFFFFFFFFF
+  std::shared_ptr<Expr> simplified_arg1 = expr.arg1()->simplified();
+  if (MatchConstant(*simplified_arg1, &value) && value == 0xFFFFFFFFFFFFFFFF) {
+    return ConstantExpr::Create(0xFFFFFFFFFFFFFFFF);
+  }
+
+  // (or X 0xFFFFFFFFFFFFFFFF) -> 0xFFFFFFFFFFFFFFFF
+  std::shared_ptr<Expr> simplified_arg2 = expr.arg2()->simplified();
+  if (MatchConstant(*simplified_arg2, &value) && value == 0xFFFFFFFFFFFFFFFF) {
+    return ConstantExpr::Create(0xFFFFFFFFFFFFFFFF);
+  }
+
+  // (or 0 X) -> X
+  if (MatchConstant(*simplified_arg1, &value) && value == 0) {
+    return simplified_arg2;
+  }
+
+  // (or X 0) -> X
+  if (MatchConstant(*simplified_arg2, &value) && value == 0) {
+    return simplified_arg1;
+  }
+
+  // Constant folding.
+  uint64_t value1, value2;
+  if (MatchConstant(*simplified_arg1, &value1) && MatchConstant(*simplified_arg2, &value2)) {
+    return ConstantExpr::Create(value1 | value2);
+  }
+
+  int cmp = simplified_arg1->CompareTo(*simplified_arg2);
+
+  // (or X X) -> X
+  if (cmp == 0) {
+    return simplified_arg1;
+  }
+
+  // Sort the order of the operands.
+  if (cmp > 0) {
+    std::swap(simplified_arg1, simplified_arg2);
+  }
+
+  if (expr.arg1() == simplified_arg1 &&
+      expr.arg2() == simplified_arg2) {
+    return std::shared_ptr<Expr>();
+  }
+  return BinaryOpExpr::CreateSimplified(BinaryOpExpr::Type::OR, simplified_arg1, simplified_arg2);
+}
+
+std::shared_ptr<Expr> BuildXorSimplified(const BinaryOpExpr& expr) {
+  std::shared_ptr<Expr> simplified_arg1 = expr.arg1()->simplified();
+  std::shared_ptr<Expr> simplified_arg2 = expr.arg2()->simplified();
+
+  // (xor X X) -> 0
+  int cmp = simplified_arg1->CompareTo(*simplified_arg2);
+  if (cmp == 0) {
+    return ConstantExpr::Create(0);
+  }
+
+  // Constant folding.
+  uint64_t value1, value2;
+  if (MatchConstant(*simplified_arg1, &value1) &&
+      MatchConstant(*simplified_arg2, &value2)) {
+    return ConstantExpr::Create(value1 ^ value2);
+  }
+
+  if (MatchConstant(*simplified_arg1, &value1)) {
+    // (xor 0 X) -> X
+    if (value1 == 0) {
+      return simplified_arg2;
+    }
+
+    // (xor 0xFFFFFFFFFFFFFFFF X) -> not X
+    if (value1 == 0xFFFFFFFFFFFFFFFF) {
+      return UnaryOpExpr::Create(UnaryOpExpr::Type::NOT, simplified_arg2)->simplified();
+    }
+  }
+
+  if (MatchConstant(*simplified_arg2, &value2)) {
+    // (xor X 0) -> X
+    if (value2 == 0) {
+      return simplified_arg1;
+    }
+
+    // (xor X 0xFFFFFFFFFFFFFFFF) -> not X
+    if (value2 == 0xFFFFFFFFFFFFFFFF) {
+      return UnaryOpExpr::Create(UnaryOpExpr::Type::NOT, simplified_arg1)->simplified();
+    }
+  }
+
+  // Sort the order of the operands.
+  if (cmp > 0) {
+    std::swap(simplified_arg1, simplified_arg2);
+  }
+
+  if (expr.arg1() == simplified_arg1 &&
+      expr.arg2() == simplified_arg2) {
+    return std::shared_ptr<Expr>();
+  }
+
+  return BinaryOpExpr::CreateSimplified(BinaryOpExpr::Type::XOR, simplified_arg1, simplified_arg2);
+}
+
+std::shared_ptr<Expr> BuildPlusSimplified(const BinaryOpExpr& expr) {
+  std::shared_ptr<Expr> simplified_arg1 = expr.arg1()->simplified();
+  std::shared_ptr<Expr> simplified_arg2 = expr.arg2()->simplified();
+
+  // Constant folding.
+  uint64_t value1, value2;
+  if (MatchConstant(*simplified_arg1, &value1) &&
+      MatchConstant(*simplified_arg2, &value2)) {
+    return ConstantExpr::Create(value1 + value2);
+  }
+
+  // (plus 0 X) -> X
+  if (MatchConstant(*simplified_arg1, &value1) && value1 == 0) {
+    return simplified_arg2;
+  }
+
+  // (plus X 0) -> X
+  if (MatchConstant(*simplified_arg2, &value2) && value2 == 0) {
+    return simplified_arg1;
+  }
+
+  // TODO (plus X X) -> (shl1 X)
+  int cmp = simplified_arg1->CompareTo(*simplified_arg2);
+  if (cmp > 0) {
+    std::swap(simplified_arg1, simplified_arg2);
+  }
+
+  if (expr.arg1() == simplified_arg1 &&
+      expr.arg2() == simplified_arg2) {
+    return std::shared_ptr<Expr>();
+  }
+
+  return BinaryOpExpr::CreateSimplified(BinaryOpExpr::Type::PLUS, simplified_arg1, simplified_arg2);
+}
+
+std::shared_ptr<Expr> BuildSimplified(const Expr& expr) {
+  switch (expr.op_type()) {
+    case OpType::LAMBDA:
+      return BuildLambdaSimplified(static_cast<const LambdaExpr&>(expr));
+    case OpType::CONSTANT:
+    case OpType::ID:
+      // No simplification is available.
+      return std::shared_ptr<Expr>();
+    case OpType::IF0:
+      return BuildIf0Simplified(static_cast<const If0Expr&>(expr));
+    case OpType::FOLD:
+      return BuildFoldSimplified(static_cast<const FoldExpr&>(expr));
+    case OpType::NOT:
+      return BuildNotSimplified(static_cast<const UnaryOpExpr&>(expr));
+    case OpType::SHL1:
+      return BuildShl1Simplified(static_cast<const UnaryOpExpr&>(expr));
+    case OpType::SHR1:
+      return BuildShr1Simplified(static_cast<const UnaryOpExpr&>(expr));
+    case OpType::SHR4:
+      return BuildShr4Simplified(static_cast<const UnaryOpExpr&>(expr));
+    case OpType::SHR16:
+      return BuildShr16Simplified(static_cast<const UnaryOpExpr&>(expr));
+    case OpType::AND:
+      return BuildAndSimplified(static_cast<const BinaryOpExpr&>(expr));
+    case OpType::OR:
+      return BuildOrSimplified(static_cast<const BinaryOpExpr&>(expr));
+    case OpType::XOR:
+      return BuildXorSimplified(static_cast<const BinaryOpExpr&>(expr));
+    case OpType::PLUS:
+      return BuildPlusSimplified(static_cast<const BinaryOpExpr&>(expr));
+    default:
+      NOTREACHED();
+  }
+  return std::shared_ptr<Expr>();
 }
 
 }  // namespace icpfc
