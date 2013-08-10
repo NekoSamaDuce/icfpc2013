@@ -24,7 +24,7 @@ def main():
   sys.argv = FLAGS(sys.argv)
   for i in reversed(xrange(FLAGS.count)):
     p = api.Train(FLAGS.size, FLAGS.operators)
-    print p.ToProblemLine()
+    print '%s\t%s' % (p.ToProblemLine(), p.answer)
     if i > 0:
       time.sleep(FLAGS.sleep)
 
