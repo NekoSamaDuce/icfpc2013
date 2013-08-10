@@ -669,6 +669,15 @@ int ParseOpTypeSet(const std::string& s) {
   return op_type_set;
 }
 
+bool MatchId(const Expr& expr, IdExpr::Name* name) {
+  if (expr.op_type() != OpType::ID) {
+    return false;
+  }
+
+  *name = static_cast<const IdExpr&>(expr).name();
+  return true;
+}
+
 bool MatchConstant(const Expr& expr, uint64_t* value) {
   if (expr.op_type() != OpType::CONSTANT) {
     return false;
@@ -699,6 +708,125 @@ bool MatchBinaryOp(const Expr& expr, BinaryOpExpr::Type type,
   return true;
 }
 
+std::shared_ptr<Expr> Substitute(const Expr& expr, IdExpr::Name name, uint64_t value);
+
+std::shared_ptr<Expr> LambdaSubstitute(const LambdaExpr& expr, IdExpr::Name name, uint64_t value) {
+  std::shared_ptr<Expr> substituted_body = Substitute(*expr.body(), name, value);
+  if (!substituted_body)
+    return std::shared_ptr<Expr>();
+
+  return LambdaExpr::Create(substituted_body);
+}
+
+std::shared_ptr<Expr> IdSubstitute(const IdExpr& expr, IdExpr::Name name, uint64_t value) {
+  if (expr.name() != name) {
+    return std::shared_ptr<Expr>();
+  }
+
+  return ConstantExpr::Create(value);
+}
+
+std::shared_ptr<Expr> If0Substitute(const If0Expr& expr, IdExpr::Name name, uint64_t value) {
+  std::shared_ptr<Expr> substituted_cond = Substitute(*expr.cond(), name, value);
+  std::shared_ptr<Expr> substituted_then_body = Substitute(*expr.then_body(), name, value);
+  std::shared_ptr<Expr> substituted_else_body = Substitute(*expr.else_body(), name, value);
+
+  if (!substituted_cond && !substituted_then_body && !substituted_else_body) {
+    return std::shared_ptr<Expr>();
+  }
+
+  if (!substituted_cond)
+    substituted_cond = expr.cond();
+  if (!substituted_then_body)
+    substituted_then_body = expr.then_body();
+  if (!substituted_else_body)
+    substituted_else_body = expr.else_body();
+
+  return If0Expr::Create(substituted_cond, substituted_then_body, substituted_else_body);
+}
+
+std::shared_ptr<Expr> FoldSubstitute(const FoldExpr& expr, IdExpr::Name name, uint64_t value) {
+  if (expr.op_type_set() & OpType::TFOLD) {
+    // Special handling for TFOLD.
+    std::shared_ptr<Expr> substituted_body = Substitute(*expr.body(), name, value);
+    if (!substituted_body)
+      return std::shared_ptr<Expr>();
+
+    return FoldExpr::CreateTFold(substituted_body);
+  }
+
+  std::shared_ptr<Expr> substituted_value = Substitute(*expr.value(), name, value);
+  std::shared_ptr<Expr> substituted_init_value = Substitute(*expr.init_value(), name, value);
+  std::shared_ptr<Expr> substituted_body = Substitute(*expr.body(), name, value);
+  if (!substituted_value && !substituted_init_value && !substituted_body) {
+    return std::shared_ptr<Expr>();
+  }
+
+  if (!substituted_value)
+    substituted_value = expr.value();
+  if (!substituted_init_value)
+    substituted_init_value = expr.init_value();
+  if (!substituted_body)
+    substituted_body = expr.body();
+
+  return FoldExpr::Create(substituted_value, substituted_init_value, substituted_body);
+}
+
+std::shared_ptr<Expr> UnaryOpSubstitute(const UnaryOpExpr& expr, IdExpr::Name name, uint64_t value) {
+  std::shared_ptr<Expr> substituted_arg = Substitute(*expr.arg(), name, value);
+  if (!substituted_arg) {
+    return std::shared_ptr<Expr>();
+  }
+
+  return UnaryOpExpr::Create(expr.type(), substituted_arg);
+}
+
+std::shared_ptr<Expr> BinaryOpSubstitute(
+    const BinaryOpExpr& expr, IdExpr::Name name, uint64_t value) {
+  std::shared_ptr<Expr> substituted_arg1 = Substitute(*expr.arg1(), name, value);
+  std::shared_ptr<Expr> substituted_arg2 = Substitute(*expr.arg2(), name, value);
+  if (!substituted_arg1 && !substituted_arg2) {
+    return std::shared_ptr<Expr>();
+  }
+
+  if (!substituted_arg1)
+    substituted_arg1 = expr.arg1();
+  if (!substituted_arg2)
+    substituted_arg2 = expr.arg2();
+
+  return BinaryOpExpr::Create(expr.type(), substituted_arg1, substituted_arg2);
+}
+
+std::shared_ptr<Expr> Substitute(const Expr& expr, IdExpr::Name name, uint64_t value) {
+  switch (expr.op_type()) {
+    case OpType::LAMBDA:
+      return LambdaSubstitute(static_cast<const LambdaExpr&>(expr), name, value);
+    case OpType::CONSTANT:
+      // No substitution.
+      return std::shared_ptr<Expr>();
+    case OpType::ID:
+      return IdSubstitute(static_cast<const IdExpr&>(expr), name, value);
+    case OpType::IF0:
+      return If0Substitute(static_cast<const If0Expr&>(expr), name, value);
+    case OpType::FOLD:
+      return FoldSubstitute(static_cast<const FoldExpr&>(expr), name, value);
+    case OpType::NOT:
+    case OpType::SHL1:
+    case OpType::SHR1:
+    case OpType::SHR4:
+    case OpType::SHR16:
+      return UnaryOpSubstitute(static_cast<const UnaryOpExpr&>(expr), name, value);
+    case OpType::AND:
+    case OpType::OR:
+    case OpType::XOR:
+    case OpType::PLUS:
+      return BinaryOpSubstitute(static_cast<const BinaryOpExpr&>(expr), name, value);
+    default:
+      NOTREACHED();
+  }
+  return std::shared_ptr<Expr>();
+}
+
 std::shared_ptr<Expr> BuildLambdaSimplified(const LambdaExpr& expr) {
   std::shared_ptr<Expr> body = expr.body();
   std::shared_ptr<Expr> simplified_body = body->simplified();
@@ -727,14 +855,41 @@ std::shared_ptr<Expr> BuildIf0Simplified(const If0Expr& expr) {
     }
   }
 
-  // (If0 cond E E) -> E
   std::shared_ptr<Expr> simplified_then_body = expr.then_body()->simplified();
   std::shared_ptr<Expr> simplified_else_body = expr.else_body()->simplified();
+
+  // (If0 "x" A B) ->
+  //    1) A[x/0] == B[x/0] -> B
+  //    2) otherwise -> (If0 A[x/0] B)
+  // TODO more condition.
+  IdExpr::Name name;
+  if (MatchId(*simplified_cond, &name) && name == IdExpr::Name::X) {
+    std::shared_ptr<Expr> substituted_then_body =
+        Substitute(*simplified_then_body, IdExpr::Name::X, 0);
+    if (substituted_then_body) {
+      substituted_then_body = substituted_then_body->simplified();
+    } else {
+      substituted_then_body = simplified_then_body;
+    }
+    std::shared_ptr<Expr> substituted_else_body =
+        Substitute(*simplified_else_body, IdExpr::Name::X, 0);
+    if (substituted_else_body) {
+      substituted_else_body = substituted_else_body->simplified();
+    } else {
+      substituted_else_body = simplified_else_body;
+    }
+
+    if (substituted_then_body->EqualTo(*substituted_else_body)) {
+      return simplified_else_body;
+    }
+
+    return If0Expr::CreateSimplified(simplified_cond, substituted_then_body, simplified_else_body);
+  }
+
+  // (If0 A A) -> A
   if (simplified_then_body->EqualTo(*simplified_else_body)) {
     return simplified_then_body;
   }
-
-  // TODO (If0 x A B) -> (If0 x ([x/0]A) B)
 
   if (expr.cond() == simplified_cond &&
       expr.then_body() == simplified_then_body &&
