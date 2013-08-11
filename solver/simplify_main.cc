@@ -11,6 +11,7 @@ using namespace icfpc;
 DEFINE_int32(size, -1, "Size of the expression");
 DEFINE_string(operators, "", "List of the operators");
 DEFINE_string(simplify, "global", "{no,each,global}");
+DEFINE_bool(quiet, false, "suppress outputs");
 
 
 int main(int argc, char* argv[]) {
@@ -36,19 +37,21 @@ int main(int argc, char* argv[]) {
   std::map<std::vector<uint64_t>, std::vector<std::shared_ptr<Expr> > > cluster =
       CreateCluster(key, result);
 
-  std::cout << "argument: ";
-  PrintCollection(&std::cout, key, ",");
-  std::cout << "\n";
-
-  int i = 0;
-  for (auto iter = cluster.cbegin(); iter != cluster.cend(); ++iter) {
-    VLOG(1) << "Output Cluster " << i++ << ": " << iter->second.size();
-    std::cout << "expected: ";
-    PrintCollection(&std::cout, iter->first, ",");
+  if (!FLAGS_quiet) {
+    std::cout << "argument: ";
+    PrintCollection(&std::cout, key, ",");
     std::cout << "\n";
-
-    for (const std::shared_ptr<Expr>& e : iter->second) {
-      std::cout << *e << "\n";
+  
+    int i = 0;
+    for (auto iter = cluster.cbegin(); iter != cluster.cend(); ++iter) {
+      VLOG(1) << "Output Cluster " << i++ << ": " << iter->second.size();
+      std::cout << "expected: ";
+      PrintCollection(&std::cout, iter->first, ",");
+      std::cout << "\n";
+  
+      for (const std::shared_ptr<Expr>& e : iter->second) {
+        std::cout << *e << "\n";
+      }
     }
   }
 
