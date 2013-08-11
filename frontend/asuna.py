@@ -76,11 +76,13 @@ def Solve(problem):
     if example:
       logging.info('rejected. argument=0x%016x, expected=0x%016x, actual=0x%016x',
                    example.argument, example.expected, example.actual)
+      cardinal_argument.append(example.argument)
+      cardinal_expected.append(example.expected)
     else:
       logging.info('rejected, but could not get a counterexample.')
-    i, o = known_io_pairs.pop()
-    cardinal_argument.append(i)
-    cardinal_expected.append(o)
+      i, o = known_io_pairs.pop()
+      cardinal_argument.append(i)
+      cardinal_expected.append(o)
 
 
 def main():
