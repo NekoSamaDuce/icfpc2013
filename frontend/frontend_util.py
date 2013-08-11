@@ -38,12 +38,22 @@ gflags.DEFINE_string(
     'process from the problemset file specified by --problemset_file. '
     'Problem ID specification can be comma-separated list of IDs or "ALL".')
 
+# Flags for --mode=train
+gflags.DEFINE_bool(
+    'train_exclude_fold', False,
+    'Exclude problems with fold')
+
 
 def GetProblemsByFlags():
   if FLAGS.mode == 'train':
+    assert FLAGS.train_count is not None, '--train_count must be specified'
     logging.info('Requesting a training problem...')
-    problems = [api.Train(FLAGS.size, FLAGS.operators)
-                for _ in xrange(FLAGS.train_count)]
+    problems = []
+    while len(problems) < FLAGS.train_count:
+      p = api.Train(FLAGS.size, FLAGS.operators)
+      if FLAGS.train_exclude_fold and 'fold' in p.operators or 'tfold' in p.operators:
+        continue
+      problems.append(p)
   elif FLAGS.mode == 'oneoff':
     assert FLAGS.problem_id is not None
     assert FLAGS.size is not None
