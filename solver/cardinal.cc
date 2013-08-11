@@ -13,6 +13,8 @@ DEFINE_string(argument, "", "");
 DEFINE_string(expected, "", "");
 DEFINE_int32(size, 30, "");
 DEFINE_string(operators, "", "List of the operators");
+DEFINE_string(refinement_argument, "", "");
+DEFINE_string(refinement_expected, "", "");
 
 typedef std::vector<uint64_t> Key;
 std::ostream& operator<<(std::ostream& os, const Key& key) {
@@ -255,10 +257,15 @@ std::shared_ptr<Expr> MakeExpression(const std::map<Key, int>& size_dict,
   }
 }
 
+enum CardinalMode {
+  SOLVE, CONDITION,
+};
+
 // TODO: The argument to be a vector to pass multiple arguments.
 std::shared_ptr<Expr> Cardinal(const Key& arguments,
                                const Key& expecteds,
-                               int max_size, int op_type_set) {
+                               int max_size, int op_type_set,
+                               CardinalMode mode) {
   std::vector<OpType> unary_op_types;
   for (OpType type : ALL_UNARY_OP_TYPES) {
     if (op_type_set & type) unary_op_types.push_back(type);
@@ -346,10 +353,28 @@ std::shared_ptr<Expr> Cardinal(const Key& arguments,
     }
     LOG(INFO) << "  Dict[" << size << "] = " << expr_dicts[size].size() << " : If0 done";
 
-    // TODO: Find it earlier.
-    std::map<Key, Back>::iterator found = expr_dicts[size].find(expecteds);
-    if (found != expr_dicts[size].end()) {
-      break;
+    if (mode == CONDITION) {
+      for (auto& item : expr_dicts[size]) {
+        const Key& k1 = item.first;
+        bool mismatch = false;
+        for (size_t i = 0; i < expecteds.size(); ++i) {
+          if ((k1[i] == 0 && expecteds[i] != 0) ||
+              (k1[i] != 0 && expecteds[i] == 0)) {
+            mismatch = true;
+            break;
+          }
+        }
+        if (!mismatch) {
+          return MakeExpression(size_dict, expr_dicts, k1);
+        }
+      }
+
+    } else {
+      // TODO: Find it earlier.
+      std::map<Key, Back>::iterator found = expr_dicts[size].find(expecteds);
+      if (found != expr_dicts[size].end()) {
+        break;
+      }
     }
   }
 
@@ -401,7 +426,7 @@ std::shared_ptr<Expr> Cardinal(const Key& arguments,
     }
   }
 #endif
-  return LambdaExpr::Create(MakeExpression(size_dict, expr_dicts, expecteds));
+  return MakeExpression(size_dict, expr_dicts, expecteds);
 }
 
 
@@ -415,7 +440,34 @@ int main(int argc, char* argv[]) {
   std::vector<uint64_t> expecteds = ParseNumberSet(FLAGS_expected);
   int op_type_set = ParseOpTypeSet(FLAGS_operators);
 
-  std::shared_ptr<Expr> expr = Cardinal(arguments, expecteds, FLAGS_size, op_type_set);
+  if (!FLAGS_refinement_argument.empty()) {
+    std::vector<uint64_t> refinement_arguments = ParseNumberSet(FLAGS_refinement_argument);
+    std::vector<uint64_t> refinement_expecteds = ParseNumberSet(FLAGS_refinement_expected);
+    std::vector<uint64_t> condition_arguments;
+    std::vector<uint64_t> condition_expecteds;
+    for (size_t i = 0; i < arguments.size(); ++i) {
+      condition_arguments.push_back(arguments[i]);
+      condition_expecteds.push_back(1);
+    }
+    for (size_t i = 0; i < refinement_arguments.size(); ++i) {
+      condition_arguments.push_back(refinement_arguments[i]);
+      condition_expecteds.push_back(0);
+    }
+
+    std::shared_ptr<Expr> cond_expr =
+        Cardinal(condition_arguments, condition_expecteds, FLAGS_size, op_type_set, CONDITION);
+    std::shared_ptr<Expr> then_body =
+        Cardinal(refinement_arguments, refinement_expecteds, FLAGS_size, op_type_set, SOLVE);
+    std::shared_ptr<Expr> else_body =
+        Cardinal(arguments, expecteds, FLAGS_size, op_type_set, SOLVE);
+    std::shared_ptr<Expr> expr =
+        LambdaExpr::Create(If0Expr::Create(cond_expr, then_body, else_body));
+    std::cout << *expr << std::endl;
+    return 0;
+  }
+
+  std::shared_ptr<Expr> expr =
+      LambdaExpr::Create(Cardinal(arguments, expecteds, FLAGS_size, op_type_set, SOLVE));
   std::cout << *expr << std::endl;
 
   return 0;
