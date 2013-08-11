@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <iostream>
 #include <map>
 #include <string>
 #include <vector>
@@ -10,14 +11,6 @@
 #include "yujio.h"
 
 using namespace icfpc;
-
-DEFINE_string(argument, "", "");
-DEFINE_string(expected, "", "");
-DEFINE_int32(size, 30, "");
-DEFINE_int32(random_seed, 178, "");
-DEFINE_string(operators, "", "List of the operators");
-DEFINE_string(refinement_argument, "", "");
-DEFINE_string(refinement_expected, "", "");
 
 int ParseOpTypeSetWithBonus(const std::string& s, bool* is_bonus) {
   int op_type_set = 0;
@@ -93,6 +86,7 @@ std::string OpTypeToString(OpType type) {
     return "ID";
   default:
     LOG(FATAL) << "Unknown OpType.";
+    abort();
   }
 }
 
@@ -169,6 +163,7 @@ Key EvalUnaryImmediate(OpType type, const Key& value) {
     case OpType::SHR16: return EvalUnaryInternal(value, OpShr16());
     default:
       LOG(FATAL) << "Unknown UnaryOpType.";
+      abort();
   }
 }
 
@@ -204,6 +199,7 @@ Key EvalBinaryImmediate(OpType type, const Key& value1, const Key& value2) {
     case OpType::PLUS: return EvalBinaryInternal(value1, value2, PlusOp());
     default:
       LOG(FATAL) << "Unknown BinaryOpType.";
+      abort();
   }
 }
 
@@ -284,6 +280,7 @@ std::shared_ptr<Expr> MakeExpression(const std::map<Key, int>& size_dict,
     return IdExpr::CreateX();
   default:
     LOG(FATAL) << "Unknown OpType.";
+    abort();
   }
 }
 
@@ -472,55 +469,90 @@ std::shared_ptr<Expr> Cardinal(const std::vector<uint64_t>& arguments,
 }
 
 
+void InitializeYujio() {
+  // TODO(kinaba): Initialize Yujio
+}
+
 int main(int argc, char* argv[]) {
   google::InstallFailureSignalHandler();
   google::InitGoogleLogging(argv[0]);
   google::ParseCommandLineFlags(&argc, &argv, true);
   std::ios::sync_with_stdio(false);
 
-  // Set random seed.
-  std::srand(FLAGS_random_seed);
+  InitializeYujio();
+  std::cout << "ready" << std::endl;
 
-  std::vector<uint64_t> arguments = ParseNumberSet(FLAGS_argument);
-  std::vector<uint64_t> expecteds = ParseNumberSet(FLAGS_expected);
-  bool is_bonus = false;
-  int op_type_set = ParseOpTypeSetWithBonus(FLAGS_operators, &is_bonus);
+  int timeout_sec;
+  int expr_size;
+  int op_type_set;
+  bool is_bonus;
+  std::vector<uint64_t> arguments;
+  std::vector<uint64_t> expecteds;
+  std::vector<uint64_t> refinement_arguments;
+  std::vector<uint64_t> refinement_expecteds;
+  
+  for (std::string line; std::getline(std::cin, line); ) {
+    // READ REQUEST!
+    CHECK_EQ("request0", line);
+    // random_seed
+    CHECK(std::getline(std::cin, line));
+    std::srand(strtoull(line.c_str(), NULL, 0));
+    // timeout_sec
+    CHECK(std::getline(std::cin, line));
+    timeout_sec = strtoull(line.c_str(), NULL, 0);
+    // expr_size
+    CHECK(std::getline(std::cin, line));
+    expr_size = strtoull(line.c_str(), NULL, 0);
+    // op_type_set / is_bonus
+    CHECK(std::getline(std::cin, line));
+    is_bonus = false;
+    op_type_set = ParseOpTypeSetWithBonus(line, &is_bonus);
+    // arguments
+    CHECK(std::getline(std::cin, line));
+    arguments = ParseNumberSet(line);
+    // expecteds
+    CHECK(std::getline(std::cin, line));
+    expecteds = ParseNumberSet(line);
+    // refinement_arguments
+    CHECK(std::getline(std::cin, line));
+    refinement_arguments = ParseNumberSet(line);
+    // refinement_expecteds
+    CHECK(std::getline(std::cin, line));
+    refinement_expecteds = ParseNumberSet(line);
 
-  if (!FLAGS_refinement_argument.empty()) {
-    std::vector<uint64_t> refinement_arguments = ParseNumberSet(FLAGS_refinement_argument);
-    std::vector<uint64_t> refinement_expecteds = ParseNumberSet(FLAGS_refinement_expected);
-    std::vector<uint64_t> condition_arguments;
-    std::vector<uint64_t> condition_expecteds;
-    for (size_t i = 0; i < arguments.size(); ++i) {
-      condition_arguments.push_back(arguments[i]);
-      condition_expecteds.push_back(1);
+    if (!refinement_arguments.empty()) {
+      std::vector<uint64_t> condition_arguments;
+      std::vector<uint64_t> condition_expecteds;
+      for (size_t i = 0; i < arguments.size(); ++i) {
+        condition_arguments.push_back(arguments[i]);
+        condition_expecteds.push_back(1);
+      }
+      for (size_t i = 0; i < refinement_arguments.size(); ++i) {
+        condition_arguments.push_back(refinement_arguments[i]);
+        condition_expecteds.push_back(0);
+      }
+
+      std::shared_ptr<Expr> cond_expr =
+          Cardinal(condition_arguments, condition_expecteds, expr_size, op_type_set,
+                   is_bonus ? BONUS_CONDITION : CONDITION);
+      std::shared_ptr<Expr> then_body =
+          Cardinal(refinement_arguments, refinement_expecteds, expr_size, op_type_set, SOLVE);
+      std::shared_ptr<Expr> else_body =
+          Cardinal(arguments, expecteds, expr_size, op_type_set, SOLVE);
+      std::shared_ptr<Expr> expr =
+          is_bonus ?
+          LambdaExpr::Create(If0Expr::Create(
+              BinaryOpExpr::Create(BinaryOpExpr::Type::AND,
+                                   cond_expr, ConstantExpr::CreateOne()),
+              then_body, else_body)) :
+          LambdaExpr::Create(If0Expr::Create(cond_expr, then_body, else_body));
+      std::cout << *expr << std::endl;
+    } else {
+      std::shared_ptr<Expr> expr =
+          LambdaExpr::Create(Cardinal(arguments, expecteds, expr_size, op_type_set, SOLVE));
+      std::cout << *expr << std::endl;
     }
-    for (size_t i = 0; i < refinement_arguments.size(); ++i) {
-      condition_arguments.push_back(refinement_arguments[i]);
-      condition_expecteds.push_back(0);
-    }
-
-    std::shared_ptr<Expr> cond_expr =
-        Cardinal(condition_arguments, condition_expecteds, FLAGS_size, op_type_set,
-                 is_bonus ? BONUS_CONDITION : CONDITION);
-    std::shared_ptr<Expr> then_body =
-        Cardinal(refinement_arguments, refinement_expecteds, FLAGS_size, op_type_set, SOLVE);
-    std::shared_ptr<Expr> else_body =
-        Cardinal(arguments, expecteds, FLAGS_size, op_type_set, SOLVE);
-    std::shared_ptr<Expr> expr =
-        is_bonus ?
-        LambdaExpr::Create(If0Expr::Create(
-            BinaryOpExpr::Create(BinaryOpExpr::Type::AND,
-                                 cond_expr, ConstantExpr::CreateOne()),
-            then_body, else_body)) :
-        LambdaExpr::Create(If0Expr::Create(cond_expr, then_body, else_body));
-    std::cout << *expr << std::endl;
-    return 0;
-  }
-
-  std::shared_ptr<Expr> expr =
-      LambdaExpr::Create(Cardinal(arguments, expecteds, FLAGS_size, op_type_set, SOLVE));
-  std::cout << *expr << std::endl;
+  }  // end of request loop
 
   return 0;
 }
