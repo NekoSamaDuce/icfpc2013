@@ -54,7 +54,7 @@ def RunCardinalSolver(problem, argument, expected,
   print >>detail, 'refinement_expected:', ','.join(['0x%016x' % x for x in refinement_expected])
   detail.flush()
 
-  logging.info('Running Cardinal System with %d arguments, %d refinement argument',
+  logging.info('*** Running Cardinal System *** [ %d vs. %d ]',
                len(argument), len(refinement_argument))
   args = [FLAGS.cardinal_solver,
           '--size=%d' % problem.size,
@@ -64,6 +64,7 @@ def RunCardinalSolver(problem, argument, expected,
           '--refinement_argument=%s' % ','.join(map(str, refinement_argument)),
           '--refinement_expected=%s' % ','.join(map(str, refinement_expected)),
           ]
+  logging.info('command line: %s', ' '.join(args))
   proc = subprocess.Popen(args, stdout=subprocess.PIPE)
   if timeout_sec is not None:
     def TimeoutKiller():
@@ -124,35 +125,44 @@ def SolveInternal(problem, random_io_pairs, detail):
         break
       # aaaaaaaaaa no example
 
-  # put to else clause as far as possible
+  buckets = [(argument, expected), (refinement_argument, refinement_expected)]
+
   while True:
-    argument.append(example.argument)
-    expected.append(example.expected)
-  
+    # example docchi ni ireru???
+    buckets.sort(key=lambda (a, e): -len(a))
+
+    # ookii hou kara
+    buckets[0][0].append(example.argument)
+    buckets[0][1].append(example.expected)
+
     program = RunCardinalSolver(
         problem, argument, expected,
         refinement_argument, refinement_expected, detail, 5)
-    if not program:
-      refinement_argument.append(argument.pop())
-      refinement_expected.append(expected.pop())
-      break
+    if program:
+      example = Guess(problem, program, detail)
+      if not example:
+        return SolveInternal(problem, random_io_pairs, detail)
+      continue
 
-    example = Guess(problem, program, detail)
-    if not example:
-      return SolveInternal(problem, random_io_pairs, detail)
+    # damedatta... orz
+    buckets[0][0].pop()
+    buckets[0][1].pop()
 
-  # put all examples to then clause
-  while True:
+    # chiisai hou
+    buckets[1][0].append(example.argument)
+    buckets[1][1].append(example.expected)
+
     program = RunCardinalSolver(
         problem, argument, expected,
-        refinement_argument, refinement_expected, detail, None)
+        refinement_argument, refinement_expected, detail, 5)
+    if program:
+      example = Guess(problem, program, detail)
+      if not example:
+        return SolveInternal(problem, random_io_pairs, detail)
+      continue
 
-    example = Guess(problem, program, detail)
-    if not example:
-      return SolveInternal(problem, random_io_pairs, detail)
-
-    refinement_argument.append(example.argument)
-    refinement_expected.append(example.expected)
+    # docchi mo dame datta... orzorz
+    return SolveInternal(problem, random_io_pairs, detail)
 
 
 def Solve(problem, detail):
@@ -206,6 +216,13 @@ def main():
                  index + 1, len(problems), problem)
     logging.info('Flag to recover: --problem_id=%s --size=%d --operators=%s',
                  problem.id, problem.size, ','.join(problem.operators))
+
+    # XXXXXXXXXXX TMPTMPTMP
+    try:
+      problem.operators.remove('bonus')
+    except:
+      pass
+
     with open(os.path.join(FLAGS.detail_log_dir, '%s.txt' % problem.id), 'w') as detail:
       Solve(problem, detail)
 
