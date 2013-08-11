@@ -718,7 +718,7 @@ int main(int argc, char* argv[]) {
           }
           if (!mismatch) {
             should_quit = true;
-            std::cout << *FoldExpr::CreateTFold(body) << std::endl;
+            std::cout << *LambdaExpr::Create(FoldExpr::CreateTFold(body)) << std::endl;
             break;
           }
           // if ((count & 0x3FF) == 0) {
