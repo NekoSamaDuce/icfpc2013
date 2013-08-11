@@ -59,7 +59,7 @@ class Alice(object):
     logging.info('Alice READY!')
 
   def Request(self, problem, else_argument, else_expected, then_argument, then_expected,
-              timeout_sec, detail):
+              first_request, timeout_sec, detail):
     random_seed = random.randrange(0, 1000000)
 
     print >>detail, ''
@@ -75,7 +75,8 @@ class Alice(object):
                  len(else_argument), len(then_argument), timeout_sec)
 
     request = StringIO.StringIO()
-    print >>request, 'request0'
+    print >>request, 'request1'
+    print >>request, 0 if first_request else 1
     print >>request, timeout_sec
     print >>request, problem.size
     print >>request, ','.join(problem.operators)
@@ -126,6 +127,7 @@ def SolveInternal(problem, random_io_pairs, alice, detail,
                   initial_wait=INITIAL_WAIT, bucketize_wait=BUCKETIZE_WAIT_INIT):
   then_argument = []
   then_expected = []
+  first_request = True
 
   trial = 0
   while True:
@@ -138,7 +140,8 @@ def SolveInternal(problem, random_io_pairs, alice, detail,
 
     program = alice.Request(
         problem, else_argument, else_expected, then_argument, then_expected,
-        initial_wait, detail)
+        first_request, initial_wait, detail)
+    first_request = False
     if program:
       # YES!!! We got some program!!!!!!!
       example = Guess(problem, program, detail)
@@ -163,7 +166,8 @@ def SolveInternal(problem, random_io_pairs, alice, detail,
 
     program = alice.Request(
         problem, else_argument, else_expected, then_argument, then_expected,
-        bucketize_wait, detail)
+        first_request, bucketize_wait, detail)
+    first_request = False
     if program:
       example = Guess(problem, program, detail)
       if not example:
@@ -181,7 +185,8 @@ def SolveInternal(problem, random_io_pairs, alice, detail,
 
     program = alice.Request(
         problem, else_argument, else_expected, then_argument, then_expected,
-        bucketize_wait, detail)
+        first_request, bucketize_wait, detail)
+    first_request = False
     if program:
       example = Guess(problem, program, detail)
       if not example:
