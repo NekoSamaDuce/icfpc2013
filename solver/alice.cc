@@ -12,6 +12,8 @@
 
 using namespace icfpc;
 
+const int kListBodyMax = 9;
+
 int ParseOpTypeSetWithBonus(const std::string& s, bool* is_bonus) {
   int op_type_set = 0;
   std::string param = s;
@@ -32,16 +34,17 @@ int ParseOpTypeSetWithBonus(const std::string& s, bool* is_bonus) {
 }
 
 struct Key {
+  bool has_fold;
   std::vector<uint64_t> arguments;
 };
 
 bool operator<(const Key& k1, const Key& k2) {
-  return k1.arguments < k2.arguments;
+  return k1.has_fold != k2.has_fold ? k1.has_fold < k2.has_fold : k1.arguments < k2.arguments;
 }
 
 
 std::ostream& operator<<(std::ostream& os, const Key& key) {
-  os << "[";
+  os << "{has_fold: " << (key.has_fold ? "true" : "false") << "} [";
   if (key.arguments.size() > 0) {
     os << key.arguments[0];
     for (size_t i = 1; i < key.arguments.size(); ++i) {
@@ -95,6 +98,7 @@ struct Back {
   const Key* arg1;
   const Key* arg2;
   const Key* arg3;
+  std::shared_ptr<Expr> fold_body;
 };
 
 static const OpType ALL_UNARY_OP_TYPES[] = {
@@ -146,7 +150,7 @@ struct OpShr16 {
 
 template<typename T>
 Key EvalUnaryInternal(const Key& input, T op) {
-  Key result;
+  Key result { input.has_fold };
   result.arguments.reserve(input.arguments.size());
   for (size_t i = 0; i < input.arguments.size(); ++i) {
     result.arguments.push_back(op(input.arguments[i]));
@@ -183,7 +187,7 @@ struct PlusOp {
 template<typename T>
 Key EvalBinaryInternal(const Key& input1, const Key& input2, T op) {
   DCHECK_EQ(input1.arguments.size(), input2.arguments.size());
-  Key result;
+  Key result { bool(input1.has_fold | input2.has_fold) };
   result.arguments.reserve(input1.arguments.size());
   for (size_t i = 0; i < input1.arguments.size(); ++i) {
     result.arguments.push_back(op(input1.arguments[i], input2.arguments[i]));
@@ -204,10 +208,34 @@ Key EvalBinaryImmediate(OpType type, const Key& value1, const Key& value2) {
 }
 
 Key EvalIfImmediate(const Key& value1, const Key& value2, const Key& value3) {
-  Key result;
+  Key result { bool(value1.has_fold | value2.has_fold | value3.has_fold) };
   result.arguments.reserve(value1.arguments.size());
   for (size_t i = 0; i < value1.arguments.size(); ++i) {
     result.arguments.push_back(value1.arguments[i] == 0 ? value2.arguments[i] : value3.arguments[i]);
+  }
+  return result;
+}
+
+struct FoldOp {
+  uint64_t operator()(uint64_t x, uint64_t v, uint64_t init, const Expr& body) {
+    Env env;
+    env.x = x;
+    for (size_t i = 0; i < 8; ++i, v >>= 8) {
+      env.y = (v & 0xFF);
+      env.z = init;
+      init = body.Eval(env);
+    }
+    return init;
+  }
+};
+
+Key EvalFoldImmediate(
+    const std::vector<uint64_t>& arguments, const Key& value1, const Key& value2, const Expr& body) {
+  Key result { true };
+  result.arguments.reserve(arguments.size());
+  for (size_t i = 0; i < value1.arguments.size(); ++i) {
+    result.arguments.push_back(
+        FoldOp()(arguments[i], value1.arguments[i], value2.arguments[i], body));
   }
   return result;
 }
@@ -292,7 +320,8 @@ enum CardinalMode {
 std::shared_ptr<Expr> Cardinal(const std::vector<uint64_t>& arguments,
                                const std::vector<uint64_t>& expecteds,
                                int max_size, int op_type_set,
-                               CardinalMode mode) {
+                               CardinalMode mode,
+                               int timeout_sec) {
   std::vector<OpType> unary_op_types;
   for (OpType type : ALL_UNARY_OP_TYPES) {
     if (op_type_set & type) unary_op_types.push_back(type);
@@ -302,6 +331,10 @@ std::shared_ptr<Expr> Cardinal(const std::vector<uint64_t>& arguments,
   for (OpType type : ALL_BINARY_OP_TYPES) {
     if (op_type_set & type) binary_op_types.push_back(type);
   }
+
+  // TODO
+  std::vector<std::vector<std::shared_ptr<Expr> > > fold_body_list
+      = ListFoldBody(kListBodyMax);
 
   // { Output => Minimum Size }
   std::map<Key, int> size_dict;
@@ -313,30 +346,38 @@ std::shared_ptr<Expr> Cardinal(const std::vector<uint64_t>& arguments,
 
   // unstable.insert(make_pair([0, 0, 0], ConstantExpr::CreateZero()));
   std::vector<uint64_t> zeroes(arguments.size(), 0), ones(arguments.size(), 1);
-  expr_dicts[1].insert(std::make_pair(Key { zeroes },
+  expr_dicts[1].insert(std::make_pair(Key { false, zeroes },
                                       Back { OpType::CONSTANT }));
-  size_dict.insert(std::make_pair(Key { zeroes }, 1));
+  size_dict.insert(std::make_pair(Key { false, zeroes }, 1));
   // unstable.insert(make_pair([1, 1, 1], ConstantExpr::CreateOne()));
-  expr_dicts[1].insert(std::make_pair(Key { ones },
+  expr_dicts[1].insert(std::make_pair(Key { false, ones },
                                       Back { OpType::CONSTANT }));
-  size_dict.insert(std::make_pair(Key { ones }, 1));
+  size_dict.insert(std::make_pair(Key { false, ones }, 1));
   // unstable.insert(make_pair([a0, a1, a2], IdExpr::CreateX()));
-  expr_dicts[1].insert(std::make_pair(Key { arguments },
+  expr_dicts[1].insert(std::make_pair(Key { false, arguments },
                                       Back { OpType::ID })); // Assumes ID = X
-  size_dict.insert(std::make_pair(Key { arguments }, 1));
+  size_dict.insert(std::make_pair(Key { false, arguments }, 1));
 
+  time_t x = time(NULL);
   for (int size = 2; size <= max_size; ++size) {
     LOG(INFO) << "Size = " << size;
 
     // Randomize operator order.
     std::random_shuffle(unary_op_types.begin(), unary_op_types.end());
     for (const auto& pair : expr_dicts[size - 1]) {
+      if (pair.first.has_fold) break;
       for (OpType type : unary_op_types) {
         Key new_value = EvalUnaryImmediate(type, pair.first);
         // TODO
         if (size_dict.insert(std::make_pair(new_value, size)).second) {
           expr_dicts[size].insert(std::make_pair(new_value,
                                                  Back { type, &pair.first }));
+          if ((size_dict.size() & 0x3FFF) == 0) {
+            time_t y = time(NULL);
+            if (y - x > timeout_sec) {
+              return std::shared_ptr<Expr>();
+            }
+          }
         }
       }
     }
@@ -347,13 +388,21 @@ std::shared_ptr<Expr> Cardinal(const std::vector<uint64_t>& arguments,
     for (int arg1_size = 1; arg1_size < size - 1; ++arg1_size) {
       int arg2_size = size - 1 - arg1_size;
       for (const auto& pair1 : expr_dicts[arg1_size]) {
+        if (pair1.first.has_fold) break;
         for (const auto& pair2 : expr_dicts[arg2_size]) {
+          if (pair2.first.has_fold) break;
           for (OpType type : binary_op_types) {
             Key new_value = EvalBinaryImmediate(type, pair1.first, pair2.first);
             // TODO
             if (size_dict.insert(std::make_pair(new_value, size)).second) {
               expr_dicts[size].insert(std::make_pair(new_value,
                                                      Back { type, &pair1.first, &pair2.first }));
+              if ((size_dict.size() & 0x3FFF) == 0) {
+                time_t y = time(NULL);
+                if (y - x > timeout_sec) {
+                  return std::shared_ptr<Expr>();
+                }
+              }
             }
           }
         }
@@ -366,14 +415,23 @@ std::shared_ptr<Expr> Cardinal(const std::vector<uint64_t>& arguments,
         for (int arg2_size = 1; arg2_size < size - arg1_size - 1; ++arg2_size) {
           int arg3_size = size - 1 - arg1_size - arg2_size;
           for (const auto& pair1 : expr_dicts[arg1_size]) {
+            if (pair1.first.has_fold) break;
             for (const auto& pair2 : expr_dicts[arg2_size]) {
+              if (pair2.first.has_fold) break;
               for (const auto& pair3 : expr_dicts[arg3_size]) {
+                if (pair3.first.has_fold) break;
                 Key new_value = EvalIfImmediate(pair1.first, pair2.first, pair3.first);
                 // TODO
                 if (size_dict.insert(std::make_pair(new_value, size)).second) {
                   expr_dicts[size].insert(std::make_pair(new_value,
                                                          Back { OpType::IF0,
                                                                 &pair1.first, &pair2.first, &pair3.first }));
+                  if ((size_dict.size() & 0x3FFF) == 0) {
+                    time_t y = time(NULL);
+                    if (y - x > timeout_sec) {
+                      return std::shared_ptr<Expr>();
+                    }
+                  }
                 }
               }
             }
@@ -382,6 +440,120 @@ std::shared_ptr<Expr> Cardinal(const std::vector<uint64_t>& arguments,
       }
     }
     LOG(INFO) << "  Dict[" << size << "] = " << expr_dicts[size].size() << " : If0 done";
+
+    if (op_type_set & OpType::FOLD) {  // TODO size
+      // Randomize operator order.
+      std::random_shuffle(unary_op_types.begin(), unary_op_types.end());
+      for (const auto& pair : expr_dicts[size - 1]) {
+        if (!pair.first.has_fold) continue;
+        for (OpType type : unary_op_types) {
+          Key new_value = EvalUnaryImmediate(type, pair.first);
+
+          // Found non-has-fold entry.
+          if (size_dict.find(Key { false, new_value.arguments}) != size_dict.end()) continue;
+          if (size_dict.insert(std::make_pair(new_value, size)).second) {
+            expr_dicts[size].insert(std::make_pair(new_value,
+                                                   Back { type, &pair.first }));
+            if ((size_dict.size() & 0x3FFF) == 0) {
+              time_t y = time(NULL);
+              if (y - x > timeout_sec) {
+                return std::shared_ptr<Expr>();
+              }
+            }
+          }
+        }
+      }
+      LOG(INFO) << "  Dict[" << size << "] = " << expr_dicts[size].size() << " : Fold Unary done";
+
+      // Randomize operator order.
+      std::random_shuffle(binary_op_types.begin(), binary_op_types.end());
+      for (int arg1_size = 1; arg1_size < size - 1; ++arg1_size) {
+        int arg2_size = size - 1 - arg1_size;
+        for (const auto& pair1 : expr_dicts[arg1_size]) {
+          for (const auto& pair2 : expr_dicts[arg2_size]) {
+            if (!(pair1.first.has_fold | pair2.first.has_fold)) continue;
+            for (OpType type : binary_op_types) {
+              Key new_value = EvalBinaryImmediate(type, pair1.first, pair2.first);
+
+              // Found non-has-fold entry.
+              if (size_dict.find(Key { false, new_value.arguments}) != size_dict.end()) continue;
+              if (size_dict.insert(std::make_pair(new_value, size)).second) {
+                expr_dicts[size].insert(std::make_pair(new_value,
+                                                       Back { type, &pair1.first, &pair2.first }));
+                if ((size_dict.size() & 0x3FFF) == 0) {
+                  time_t y = time(NULL);
+                  if (y - x > timeout_sec) {
+                    return std::shared_ptr<Expr>();
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      LOG(INFO) << "  Dict[" << size << "] = " << expr_dicts[size].size() << " : Fold Binary done";
+
+      if (op_type_set & IF0) {
+        for (int arg1_size = 1; arg1_size < size - 2; ++arg1_size) {
+          for (int arg2_size = 1; arg2_size < size - arg1_size - 1; ++arg2_size) {
+            int arg3_size = size - 1 - arg1_size - arg2_size;
+            for (const auto& pair1 : expr_dicts[arg1_size]) {
+              for (const auto& pair2 : expr_dicts[arg2_size]) {
+                for (const auto& pair3 : expr_dicts[arg3_size]) {
+                  if (pair1.first.has_fold | pair2.first.has_fold | pair3.first.has_fold) continue;
+                  Key new_value = EvalIfImmediate(pair1.first, pair2.first, pair3.first);
+
+                  // Found non-has-fold entry.
+                  if (size_dict.find(Key { false, new_value.arguments}) != size_dict.end()) continue;
+                  if (size_dict.insert(std::make_pair(new_value, size)).second) {
+                    expr_dicts[size].insert(std::make_pair(new_value,
+                                                           Back { OpType::IF0,
+                                                                 &pair1.first, &pair2.first, &pair3.first }));
+                    if ((size_dict.size() & 0x3FFF) == 0) {
+                      time_t y = time(NULL);
+                      if (y - x > timeout_sec) {
+                        return std::shared_ptr<Expr>();
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      LOG(INFO) << "  Dict[" << size << "] = " << expr_dicts[size].size() << " : If0 done";
+
+      // Fold
+      for (int body_size = 1; body_size < std::min(size - 2, kListBodyMax); ++body_size) {
+        for (int arg1_size = 1; arg1_size < size - body_size - 1; ++arg1_size) {
+          int arg2_size = size - 1 - body_size - arg1_size;
+          for (const auto& pair1 : expr_dicts[arg1_size]) {
+            if (pair1.first.has_fold) break;
+            for (const auto& pair2 : expr_dicts[arg2_size]) {
+              if (pair2.first.has_fold) break;
+              for (const std::shared_ptr<Expr>& body : fold_body_list[body_size]) {
+                Key new_value = EvalFoldImmediate(arguments, pair1.first, pair2.first, *body);
+
+                // Found non-has-fold entry.
+                if (size_dict.find(Key { false, new_value.arguments}) != size_dict.end()) continue;
+                if (size_dict.insert(std::make_pair(new_value, size)).second) {
+                  expr_dicts[size].insert(std::make_pair(new_value,
+                                                         Back { OpType::FOLD,
+                                                               &pair1.first, &pair2.first, NULL, body }));
+                  if ((size_dict.size() & 0x3FFF) == 0) {
+                    time_t y = time(NULL);
+                    if (y - x > timeout_sec) {
+                      return std::shared_ptr<Expr>();
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
 
     if (mode == CONDITION || mode == BONUS_CONDITION) {
       for (auto& item : expr_dicts[size]) {
@@ -409,9 +581,11 @@ std::shared_ptr<Expr> Cardinal(const std::vector<uint64_t>& arguments,
 
     } else {
       // TODO: Find it earlier.
-      std::map<Key, Back>::iterator found = expr_dicts[size].find(Key { expecteds });
+      std::map<Key, Back>::iterator found = expr_dicts[size].find(Key { false, expecteds });
+      if (found == expr_dicts[size].end())
+        found = expr_dicts[size].find(Key { true, expecteds });
       if (found != expr_dicts[size].end()) {
-        return MakeExpression(size_dict, expr_dicts, Key { expecteds });
+        return MakeExpression(size_dict, expr_dicts, found->first);
       }
     }
   }
@@ -471,6 +645,7 @@ std::shared_ptr<Expr> Cardinal(const std::vector<uint64_t>& arguments,
 
 void InitializeYujio() {
   // TODO(kinaba): Initialize Yujio
+  ListFoldBody(kListBodyMax);
 }
 
 int main(int argc, char* argv[]) {
@@ -490,7 +665,7 @@ int main(int argc, char* argv[]) {
   std::vector<uint64_t> expecteds;
   std::vector<uint64_t> refinement_arguments;
   std::vector<uint64_t> refinement_expecteds;
-  
+
   for (std::string line; std::getline(std::cin, line); ) {
     // READ REQUEST!
     CHECK_EQ("request0", line);
@@ -532,13 +707,17 @@ int main(int argc, char* argv[]) {
         condition_expecteds.push_back(0);
       }
 
+      // TODO
       std::shared_ptr<Expr> cond_expr =
           Cardinal(condition_arguments, condition_expecteds, expr_size, op_type_set,
-                   is_bonus ? BONUS_CONDITION : CONDITION);
+                   is_bonus ? BONUS_CONDITION : CONDITION,
+                   timeout_sec);
       std::shared_ptr<Expr> then_body =
-          Cardinal(refinement_arguments, refinement_expecteds, expr_size, op_type_set, SOLVE);
+          Cardinal(refinement_arguments, refinement_expecteds, expr_size, op_type_set, SOLVE,
+                   timeout_sec);
       std::shared_ptr<Expr> else_body =
-          Cardinal(arguments, expecteds, expr_size, op_type_set, SOLVE);
+          Cardinal(arguments, expecteds, expr_size, op_type_set, SOLVE,
+                   timeout_sec);
       std::shared_ptr<Expr> expr =
           is_bonus ?
           LambdaExpr::Create(If0Expr::Create(
@@ -549,7 +728,7 @@ int main(int argc, char* argv[]) {
       std::cout << *expr << std::endl;
     } else {
       std::shared_ptr<Expr> expr =
-          LambdaExpr::Create(Cardinal(arguments, expecteds, expr_size, op_type_set, SOLVE));
+          LambdaExpr::Create(Cardinal(arguments, expecteds, expr_size, op_type_set, SOLVE, timeout_sec));
       std::cout << *expr << std::endl;
     }
   }  // end of request loop
