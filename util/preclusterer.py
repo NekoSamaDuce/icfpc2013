@@ -17,6 +17,8 @@ from util import stdlog
 
 FLAGS = gflags.FLAGS
 
+ROOT_DIR = os.path.join(os.path.dirname(__file__), os.pardir)
+
 gflags.DEFINE_string(
     'cluster_solver', None,
     'Path to cluster solver binary.')
@@ -102,8 +104,9 @@ def Worker(q):
     with open(os.devnull, 'w') as null:
       p = subprocess.Popen(
           ['/bin/bash', '-c',
-           'ulimit -t %d -v %d; eval "$@" | wc' % (
-                FLAGS.time_limit_sec, FLAGS.memory_limit_kb),
+           'ulimit -t %d -v %d; eval "$@" | %s' % (
+                FLAGS.time_limit_sec, FLAGS.memory_limit_kb,
+                '%s/python.sh -m util.supercacher' % ROOT_DIR),
            'go',
            FLAGS.cluster_solver,
            '--size=%d' % problem.size,
@@ -114,10 +117,10 @@ def Worker(q):
     line = problem.ToProblemLine().replace('\t', ' ')
     logging.info('start: %s', line)
     output = p.communicate(None)[0]
-    if output.strip().startswith('0'):
-      logging.info('fail: %s', line)
+    if output.strip() != 'ok':
+      logging.info('FAIL: %s', line)
     else:
-      logging.info('success: %s => %s', line, ','.join(output.split()))
+      logging.info('SUCCESS: %s => %s', line, ','.join(output.split()))
     q.task_done()
 
 
