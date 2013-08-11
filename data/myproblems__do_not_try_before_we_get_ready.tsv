@@ -1568,7 +1568,7 @@ yLtwy99GXW1W1ZAtCqU5zoSL	29	and,if0,not,or,plus,shl1,shr1,tfold,xor
 8J56PJCkXSoaj1HShyd4VOBg	30	and,if0,or,shl1,shr1,shr4,tfold,xor
 8tM6CW7dAIO8ftycXIDmZKQv	30	and,fold,if0,not,or,shl1,shr1,shr4,xor
 #FAILED:97CMmKAGBooLDbtaagpOYiN0	30	and,if0,not,plus,shl1,shr1,shr16,shr4,xor
-Bnje66oBHsIk3brBkBISzXX9	30	and,if0,or,plus,shr1,shr16,shr4,xor
+#FAILED:Bnje66oBHsIk3brBkBISzXX9	30	and,if0,or,plus,shr1,shr16,shr4,xor
 GVH1JwG4kzImzXVFTyICG4ul	30	and,if0,not,plus,shl1,shr1,shr16,shr4,tfold
 GlMcPx43pV2CR6h8IKAZoRfi	30	fold,if0,not,or,plus,shl1,shr1,shr16,shr4,xor
 KuEBVlZffAwjPat57lX3qJEq	30	and,if0,not,or,plus,shr1,shr4,xor
