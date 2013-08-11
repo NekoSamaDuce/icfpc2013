@@ -9,10 +9,71 @@
 using namespace icfpc;
 
 
-DEFINE_uint64(argument, 0, "");
-DEFINE_uint64(expected, 0, "");
+DEFINE_string(argument, "", "");
+DEFINE_string(expected, "", "");
 DEFINE_int32(size, 30, "");
 DEFINE_string(operators, "", "List of the operators");
+
+
+typedef std::vector<uint64_t> Key;
+
+
+std::ostream& operator<<(std::ostream& os, const Key& key) {
+  os << "[";
+  if (key.size() > 0) {
+    os << key[0];
+    for (size_t i = 1; i < key.size(); ++i) {
+      os << ", " << key[i];
+    }
+  }
+  os << "]";
+  return os;
+}
+
+
+std::string OpTypeToString(OpType type) {
+  switch (type) {
+  case NOT:
+    return "NOT";
+  case SHL1:
+    return "SHL1";
+  case SHR1:
+    return "SHR1";
+  case SHR4:
+    return "SHR4";
+  case SHR16:
+    return "SHR16";
+  case AND:
+    return "AND";
+  case OR:
+    return "OR";
+  case XOR:
+    return "XOR";
+  case PLUS:
+    return "PLUS";
+  case IF0:
+    return "IF0";
+  case FOLD:
+    return "FOLD";
+  case TFOLD:
+    return "TFOLD";
+  case LAMBDA:
+    return "LAMBDA";
+  case CONSTANT:
+    return "CONSTANT";
+  case ID:
+    return "ID";
+  default:
+    LOG(FATAL) << "Unknown OpType.";
+  }
+}
+
+struct Back {
+  OpType type;
+  const std::vector<uint64_t>* arg1;
+  const std::vector<uint64_t>* arg2;
+  const std::vector<uint64_t>* arg3;
+};
 
 
 static const UnaryOpExpr::Type ALL_UNARY_OP_TYPES[] = {
@@ -35,43 +96,81 @@ static const BinaryOpExpr::Type ALL_BINARY_OP_TYPES[] = {
 static std::vector<BinaryOpExpr::Type> BINARY_OP_TYPES;
 
 
-uint64_t EvalUnaryImmediate(UnaryOpExpr::Type type, uint64_t value) {
+std::vector<uint64_t> ParseNumberSet(const std::string& s) {
+  std::vector<uint64_t> results;
+  std::string param = s;
+  for (auto& c : param) {
+    if (c == ',') {
+      c = ' ';
+    }
+  }
+  std::stringstream ss(param);
+  for(std::string op; ss >> op; ) {
+    results.push_back(strtoull(op.c_str(), NULL, 0));
+  }
+  return results;
+}
+
+
+Key EvalUnaryImmediate(UnaryOpExpr::Type type, const Key& value) {
+  Key result;
   switch (type) {
   case UnaryOpExpr::Type::NOT:
-    return ~value;
+    for (auto x : value)
+      result.push_back(~x);
+    return result;
   case UnaryOpExpr::Type::SHL1:
-    return value << 1;
+    for (auto x : value)
+      result.push_back(x << 1);
+    return result;
   case UnaryOpExpr::Type::SHR1:
-    return value >> 1;
+    for (auto x : value)
+      result.push_back(x >> 1);
+    return result;
   case UnaryOpExpr::Type::SHR4:
-    return value >> 4;
+    for (auto x : value)
+      result.push_back(x >> 4);
+    return result;
   case UnaryOpExpr::Type::SHR16:
-    return value >> 16;
+    for (auto x : value)
+      result.push_back(x >> 16);
+    return result;
   default:
-    return 0xdeadbeef;
+    LOG(FATAL) << "Unknown UnaryOpType.";
   }
 }
 
 
-uint64_t EvalBinaryImmediate(BinaryOpExpr::Type type,
-                             uint64_t value1, uint64_t value2) {
+Key EvalBinaryImmediate(BinaryOpExpr::Type type,
+                             const Key& value1, const Key& value2) {
+  Key result;
   switch (type) {
   case BinaryOpExpr::Type::AND:
-    return value1 & value2;
+    for (size_t i = 0; i < value1.size(); ++i)
+      result.push_back(value1[i] & value2[i]);
+    return result;
   case BinaryOpExpr::Type::OR:
-    return value1 | value2;
+    for (size_t i = 0; i < value1.size(); ++i)
+      result.push_back(value1[i] | value2[i]);
+    return result;
   case BinaryOpExpr::Type::XOR:
-    return value1 ^ value2;
+    for (size_t i = 0; i < value1.size(); ++i)
+      result.push_back(value1[i] ^ value2[i]);
+    return result;
   case BinaryOpExpr::Type::PLUS:
-    return value1 + value2;
+    for (size_t i = 0; i < value1.size(); ++i)
+      result.push_back(value1[i] + value2[i]);
+    return result;
   default:
-    return 0xdeadbeef;
+    LOG(FATAL) << "Unknown BinaryOpType.";
   }
 }
 
 
 // TODO: The argument to be a vector to pass multiple arguments.
-void Cardinal(uint64_t argument, uint64_t expected, int max_size, int op_type_set) {
+void Cardinal(const Key& arguments,
+              const Key& expecteds,
+              int max_size, int op_type_set) {
   for (UnaryOpExpr::Type type : ALL_UNARY_OP_TYPES) {
     if ((op_type_set & UnaryOpExpr::ToOpType(type)) == 0) {
       continue;
@@ -87,31 +186,39 @@ void Cardinal(uint64_t argument, uint64_t expected, int max_size, int op_type_se
   }
 
   // { Output => Minimum Size }
-  std::map<uint64_t, int> size_dict;
+  std::map<Key, int> size_dict;
 
   // TODO: To be std::map<std::vector<uint64_t>, std::shared_ptr<Expr> > dict;
   // [output when |x0| is given, output when |x1| is given, ...] => backtrack
   // { Size => { Output => Expr } }
-  std::map<uint64_t, std::shared_ptr<Expr> > expr_dicts[30];
+  std::map<Key, Back> expr_dicts[30];
 
   // unstable.insert(make_pair([0, 0, 0], ConstantExpr::CreateZero()));
-  expr_dicts[1].insert(std::make_pair(0, ConstantExpr::CreateZero()));
-  size_dict.insert(std::make_pair(0, 1));
+  
+  Key zeroes, ones;
+  for (size_t i = 0; i < arguments.size(); ++i) {
+    zeroes.push_back(0);
+    ones.push_back(1);
+  }
+  expr_dicts[1].insert(std::make_pair(zeroes,
+                                      Back { OpType::CONSTANT }));
+  size_dict.insert(std::make_pair(Key {0, 0, 0}, 1));
   // unstable.insert(make_pair([1, 1, 1], ConstantExpr::CreateOne()));
-  expr_dicts[1].insert(std::make_pair(1, ConstantExpr::CreateOne()));
-  size_dict.insert(std::make_pair(1, 1));
+  expr_dicts[1].insert(std::make_pair(ones,
+                                      Back { OpType::CONSTANT }));
+  size_dict.insert(std::make_pair(Key {1, 1, 1}, 1));
   // unstable.insert(make_pair([a0, a1, a2], IdExpr::CreateX()));
-  expr_dicts[1].insert(std::make_pair(argument, IdExpr::CreateX()));
-  size_dict.insert(std::make_pair(argument, 1));
+  expr_dicts[1].insert(std::make_pair(arguments,
+                                      Back { OpType::ID })); // Assumes ID = X
+  size_dict.insert(std::make_pair(arguments, 1));
 
   for (int size = 2; size <= max_size; ++size) {
     for (const auto& pair : expr_dicts[size - 1]) {
       for (UnaryOpExpr::Type type : UNARY_OP_TYPES) {
-        uint64_t new_value = EvalUnaryImmediate(type, pair.first);
-        if (size_dict.insert(std::make_pair(new_value, size)).second) { // If new
+        Key new_value = EvalUnaryImmediate(type, pair.first);
+        if (size_dict.insert(std::make_pair(new_value, size)).second) {
           expr_dicts[size].insert(std::make_pair(new_value,
-                                                 UnaryOpExpr::Create(type,
-                                                                     ConstantExpr::Create(pair.first))));
+                                                 Back { UnaryOpExpr::ToOpType(type), &pair.first }));
         }
       }
     }
@@ -121,12 +228,11 @@ void Cardinal(uint64_t argument, uint64_t expected, int max_size, int op_type_se
       for (const auto& pair1 : expr_dicts[arg1_size]) {
         for (const auto& pair2 : expr_dicts[arg2_size]) {
           for (BinaryOpExpr::Type type : BINARY_OP_TYPES) {
-            uint64_t new_value = EvalBinaryImmediate(type, pair1.first, pair2.first);
+            Key new_value = EvalBinaryImmediate(type, pair1.first, pair2.first);
             if (size_dict.insert(std::make_pair(new_value, size)).second) {
               expr_dicts[size].insert(std::make_pair(new_value,
-                                                     BinaryOpExpr::Create(type,
-                                                                          ConstantExpr::Create(pair1.first),
-                                                                          ConstantExpr::Create(pair2.first))));
+                                                     Back { BinaryOpExpr::ToOpType(type),
+                                                            &pair1.first, &pair2.first }));
             }
           }
         }
@@ -134,53 +240,49 @@ void Cardinal(uint64_t argument, uint64_t expected, int max_size, int op_type_se
     }
 
     // TODO: Find it earlier.
-    std::map<uint64_t, std::shared_ptr<Expr> >:: iterator found = expr_dicts[size].find(expected);
+    std::map<Key, Back>::iterator found = expr_dicts[size].find(expecteds);
     if (found != expr_dicts[size].end()) {
       break;
     }
   }
 
-  std::vector<std::pair<int, uint64_t> > stack;
+  std::vector<std::pair<int, Key> > stack;
   int depth = 0;
-  uint64_t value = expected;
+  Key value = expecteds;
   while (true) {
-    std::map<uint64_t, int>::const_iterator found_size = size_dict.find(value);
+    std::map<Key, int>::const_iterator found_size = size_dict.find(value);
     if (found_size == size_dict.end()) {
       std::cout << "Not found." << std::endl;
       break;
     }
     int size = found_size->second;
-    std::map<uint64_t, std::shared_ptr<Expr> >::iterator found = expr_dicts[size].find(value);
+    std::map<Key, Back>::iterator found = expr_dicts[size].find(value);
 
     for (int i = 0; i < depth; ++i) {
       std::cout << " ";
     }
     std::cout << found->first << " <== "
-              << *found->second << " [size="
+              << OpTypeToString(found->second.type) << " [size="
               << size << "]" << std::endl;
 
-    if (found->second->op_type() == CONSTANT ||
-        found->second->op_type() == ID) {
+    if (found->second.type == CONSTANT ||
+        found->second.type == ID) {
       if (stack.empty()) {
         break;
       }
-      std::pair<int, uint64_t> popped = stack.back();
+      std::pair<int, Key> popped = stack.back();
       stack.pop_back();
       depth = popped.first;
       value = popped.second;
-    } else if (found->second->op_type() == AND ||
-               found->second->op_type() == OR ||
-               found->second->op_type() == XOR ||
-               found->second->op_type() == PLUS) {
+    } else if (found->second.type == AND ||
+               found->second.type == OR ||
+               found->second.type == XOR ||
+               found->second.type == PLUS) {
       ++depth;
-      value = std::static_pointer_cast<ConstantExpr>(
-          std::static_pointer_cast<BinaryOpExpr>(found->second)->arg1())->value();
-      uint64_t value2 = std::static_pointer_cast<ConstantExpr>(
-          std::static_pointer_cast<BinaryOpExpr>(found->second)->arg2())->value();
-      stack.push_back(std::make_pair(depth, value2));
+      value = *found->second.arg1;
+      stack.push_back(std::make_pair(depth, *found->second.arg2));
     } else {
-      value = std::static_pointer_cast<ConstantExpr>(
-           std::static_pointer_cast<UnaryOpExpr>(found->second)->arg())->value();
+      value = *found->second.arg1;
       ++depth;
     }
   }
@@ -193,9 +295,11 @@ int main(int argc, char* argv[]) {
   google::ParseCommandLineFlags(&argc, &argv, true);
   std::ios::sync_with_stdio(false);
 
+  std::vector<uint64_t> arguments = ParseNumberSet(FLAGS_argument);
+  std::vector<uint64_t> expecteds = ParseNumberSet(FLAGS_expected);
   int op_type_set = ParseOpTypeSet(FLAGS_operators);
 
-  Cardinal(FLAGS_argument, FLAGS_expected, FLAGS_size, op_type_set);
+  Cardinal(arguments, expecteds, FLAGS_size, op_type_set);
   // std::cout << *expr << std::endl;
 
   return 0;
