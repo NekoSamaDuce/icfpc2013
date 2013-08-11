@@ -296,7 +296,10 @@ std::shared_ptr<Expr> MakeExpression(const std::map<Key, int>& size_dict,
         MakeExpression(size_dict, expr_dicts, *found->second.arg2),
         MakeExpression(size_dict, expr_dicts, *found->second.arg3));
   case FOLD:
-    LOG(FATAL) << "Unsupported: FOLD";
+    return FoldExpr::Create(
+        MakeExpression(size_dict, expr_dicts, *found->second.arg1),
+        MakeExpression(size_dict, expr_dicts, *found->second.arg2),
+        found->second.fold_body);
   case TFOLD:
     LOG(FATAL) << "Unsupported: TFOLD";
   case LAMBDA:
