@@ -16,6 +16,25 @@ DEFINE_string(operators, "", "List of the operators");
 DEFINE_string(refinement_argument, "", "");
 DEFINE_string(refinement_expected, "", "");
 
+int ParseOpTypeSetWithBonus(const std::string& s, bool* is_bonus) {
+  int op_type_set = 0;
+  std::string param = s;
+  for (auto& c : param) {
+    if (c == ',') {
+      c = ' ';
+    }
+  }
+  std::stringstream ss(param);
+  for(std::string op; ss >> op; ) {
+    if (op == "bonus") {
+      *is_bonus = true;
+      continue;
+    }
+    op_type_set |= ParseOpType(op);
+  }
+  return op_type_set;
+}
+
 typedef std::vector<uint64_t> Key;
 std::ostream& operator<<(std::ostream& os, const Key& key) {
   os << "[";
@@ -258,7 +277,7 @@ std::shared_ptr<Expr> MakeExpression(const std::map<Key, int>& size_dict,
 }
 
 enum CardinalMode {
-  SOLVE, CONDITION,
+  SOLVE, CONDITION, BONUS_CONDITION,
 };
 
 // TODO: The argument to be a vector to pass multiple arguments.
@@ -353,15 +372,23 @@ std::shared_ptr<Expr> Cardinal(const Key& arguments,
     }
     LOG(INFO) << "  Dict[" << size << "] = " << expr_dicts[size].size() << " : If0 done";
 
-    if (mode == CONDITION) {
+    if (mode == CONDITION || mode == BONUS_CONDITION) {
       for (auto& item : expr_dicts[size]) {
         const Key& k1 = item.first;
         bool mismatch = false;
         for (size_t i = 0; i < expecteds.size(); ++i) {
-          if ((k1[i] == 0 && expecteds[i] != 0) ||
-              (k1[i] != 0 && expecteds[i] == 0)) {
-            mismatch = true;
-            break;
+          if (mode == CONDITION) {
+            if ((k1[i] == 0 && expecteds[i] != 0) ||
+                (k1[i] != 0 && expecteds[i] == 0)) {
+              mismatch = true;
+              break;
+            }
+          } else {
+            // !!!BONUS MODE!!!
+            if ((k1[i] & 1) != expecteds[i]) {
+              mismatch = true;
+              break;
+            }
           }
         }
         if (!mismatch) {
@@ -438,7 +465,8 @@ int main(int argc, char* argv[]) {
 
   std::vector<uint64_t> arguments = ParseNumberSet(FLAGS_argument);
   std::vector<uint64_t> expecteds = ParseNumberSet(FLAGS_expected);
-  int op_type_set = ParseOpTypeSet(FLAGS_operators);
+  bool is_bonus = false;
+  int op_type_set = ParseOpTypeSetWithBonus(FLAGS_operators, &is_bonus);
 
   if (!FLAGS_refinement_argument.empty()) {
     std::vector<uint64_t> refinement_arguments = ParseNumberSet(FLAGS_refinement_argument);
@@ -455,12 +483,18 @@ int main(int argc, char* argv[]) {
     }
 
     std::shared_ptr<Expr> cond_expr =
-        Cardinal(condition_arguments, condition_expecteds, FLAGS_size, op_type_set, CONDITION);
+        Cardinal(condition_arguments, condition_expecteds, FLAGS_size, op_type_set,
+                 is_bonus ? BONUS_CONDITION : CONDITION);
     std::shared_ptr<Expr> then_body =
         Cardinal(refinement_arguments, refinement_expecteds, FLAGS_size, op_type_set, SOLVE);
     std::shared_ptr<Expr> else_body =
         Cardinal(arguments, expecteds, FLAGS_size, op_type_set, SOLVE);
     std::shared_ptr<Expr> expr =
+        is_bonus ?
+        LambdaExpr::Create(If0Expr::Create(
+            BinaryOpExpr::Create(BinaryOpExpr::Type::AND,
+                                 cond_expr, ConstantExpr::CreateOne()),
+            then_body, else_body)) :
         LambdaExpr::Create(If0Expr::Create(cond_expr, then_body, else_body));
     std::cout << *expr << std::endl;
     return 0;
