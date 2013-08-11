@@ -136,7 +136,7 @@ def SolveInternal(problem, random_io_pairs, alice, detail,
 
   trial = 0
   while True:
-    if time_limit_sec is not None and time.time() - start_time > FLAGS.time_limit_sec:
+    if FLAGS.time_limit_sec is not None and time.time() - start_time > FLAGS.time_limit_sec:
       raise api.Expired('artificial time limit')
     # Sample 3 I/O randomly
     else_argument = []
@@ -164,7 +164,7 @@ def SolveInternal(problem, random_io_pairs, alice, detail,
   buckets = [(else_argument, else_expected), (then_argument, then_expected)]
 
   while True:
-    if time_limit_sec is not None and time.time() - start_time > FLAGS.time_limit_sec:
+    if FLAGS.time_limit_sec is not None and time.time() - start_time > FLAGS.time_limit_sec:
       raise api.Expired('artificial time limit')
 
     # example docchi ni ireru???
