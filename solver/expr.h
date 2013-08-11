@@ -905,6 +905,125 @@ bool HasOneBitAlways(const Expr& expr) {
   return GetOneBit(expr) != 0;
 }
 
+std::shared_ptr<Expr> RemoveBitOperation(const Expr& expr, uint64_t mask) {
+  uint64_t value;
+  if (MatchConstant(expr, &value)) {
+    if ((value & mask) != 0)
+      return ConstantExpr::Create(value & ~mask);
+    return std::shared_ptr<Expr>();
+  }
+
+  std::shared_ptr<Expr> arg1, arg2;
+  if (MatchBinaryOp(expr, BinaryOpExpr::Type::AND, &arg1, &arg2)) {
+    if (MatchConstant(*arg1, &value) && (value & ~mask) == (~mask)) {
+      return arg2;
+    }
+    if (MatchConstant(*arg2, &value) && (value & ~mask) == (~mask)) {
+      return arg1;
+    }
+
+    std::shared_ptr<Expr> arg1_1 = RemoveBitOperation(*arg1, mask);
+    std::shared_ptr<Expr> arg2_1 = RemoveBitOperation(*arg2, mask);
+    if (arg1_1 || arg2_1) {
+      if (!arg1_1) arg1_1 = arg1;
+      if (!arg2_1) arg2_1 = arg2;
+
+      return BinaryOpExpr::Create(BinaryOpExpr::Type::AND, arg1_1, arg2_1);
+    }
+    return std::shared_ptr<Expr>();
+  }
+
+  if (MatchBinaryOp(expr, BinaryOpExpr::Type::OR, &arg1, &arg2) ||
+      MatchBinaryOp(expr, BinaryOpExpr::Type::XOR, &arg1, &arg2)) {
+    if (MatchConstant(*arg1, &value) && (value & ~mask) == 0) {
+      std::shared_ptr<Expr> arg2_1 = RemoveBitOperation(*arg2, mask);
+      return arg2_1 ? arg2_1 : arg2;
+    }
+    if (MatchConstant(*arg2, &value) && (value & ~mask) == 0) {
+      std::shared_ptr<Expr> arg1_1 = RemoveBitOperation(*arg1, mask);
+      return arg1_1 ? arg1_1 : arg1;
+    }
+
+    if (expr.op_type() == OpType::XOR) {
+      if (MatchConstant(*arg1, &value) && (value & ~mask) == (~mask)) {
+        std::shared_ptr<Expr> arg2_1 = RemoveBitOperation(*arg2, mask);
+        if (!arg2_1) arg2_1 = arg2;
+        return UnaryOpExpr::Create(UnaryOpExpr::Type::NOT, arg2_1);
+      }
+      if (MatchConstant(*arg2, &value) && (value & ~mask) == (~mask)) {
+        std::shared_ptr<Expr> arg1_1 = RemoveBitOperation(*arg1, mask);
+        if (!arg1_1) arg1_1 = arg1;
+        return UnaryOpExpr::Create(UnaryOpExpr::Type::NOT, arg1_1);
+      }
+    }
+
+    std::shared_ptr<Expr> arg1_1 = RemoveBitOperation(*arg1, mask);
+    std::shared_ptr<Expr> arg2_1 = RemoveBitOperation(*arg2, mask);
+    if (arg1_1 || arg2_1) {
+      if (!arg1_1) arg1_1 = arg1;
+      if (!arg2_1) arg2_1 = arg2;
+      return BinaryOpExpr::Create(
+          static_cast<const BinaryOpExpr&>(expr).type(), arg1_1, arg2_1);
+    }
+
+    return std::shared_ptr<Expr>();
+  }
+
+  if (MatchUnaryOp(expr, UnaryOpExpr::Type::SHL1, &arg1)) {
+    std::shared_ptr<Expr> arg1_1 = RemoveBitOperation(*arg1, (mask >> 1) | 0x8000000000000000ULL);
+    if (arg1_1) {
+      return UnaryOpExpr::Create(UnaryOpExpr::Type::SHL1, arg1_1);
+    }
+    return std::shared_ptr<Expr>();
+  }
+
+  if (MatchUnaryOp(expr, UnaryOpExpr::Type::NOT, &arg1)) {
+    std::shared_ptr<Expr> arg1_1 = RemoveBitOperation(*arg1, mask);
+    if (arg1_1) {
+      return UnaryOpExpr::Create(UnaryOpExpr::Type::NOT, arg1_1);
+    }
+    return std::shared_ptr<Expr>();
+  }
+
+  if (MatchUnaryOp(expr, UnaryOpExpr::Type::SHR1, &arg1)) {
+    std::shared_ptr<Expr> arg1_1 = RemoveBitOperation(*arg1, (mask << 1) | 1);
+    if (arg1_1) {
+      return UnaryOpExpr::Create(UnaryOpExpr::Type::SHR1, arg1_1);
+    }
+    return std::shared_ptr<Expr>();
+  }
+
+  if (MatchUnaryOp(expr, UnaryOpExpr::Type::SHR4, &arg1)) {
+    std::shared_ptr<Expr> arg1_1 = RemoveBitOperation(*arg1, (mask << 4) | 0xF);
+    if (arg1_1) {
+      return UnaryOpExpr::Create(UnaryOpExpr::Type::SHR4, arg1_1);
+    }
+    return std::shared_ptr<Expr>();
+  }
+
+  if (MatchUnaryOp(expr, UnaryOpExpr::Type::SHR16, &arg1)) {
+    std::shared_ptr<Expr> arg1_1 = RemoveBitOperation(*arg1, (mask << 16) | 0xFFFF);
+    if (arg1_1) {
+      return UnaryOpExpr::Create(UnaryOpExpr::Type::SHR16, arg1_1);
+    }
+    return std::shared_ptr<Expr>();
+  }
+
+  std::shared_ptr<Expr> cond;
+  if (MatchIf0(expr, &cond, &arg1, &arg2)) {
+    std::shared_ptr<Expr> arg1_1 = RemoveBitOperation(*arg1, mask);
+    std::shared_ptr<Expr> arg2_1 = RemoveBitOperation(*arg2, mask);
+    if (arg1_1 || arg2_1) {
+      if (!arg1_1) arg1_1 = arg1;
+      if (!arg2_1) arg2_1 = arg2;
+      return If0Expr::Create(cond, arg1_1, arg2_1);
+    }
+    return std::shared_ptr<Expr>();
+  }
+
+  return std::shared_ptr<Expr>();
+}
+
 std::shared_ptr<Expr> Substitute(const Expr& expr, IdExpr::Name name, uint64_t value);
 
 std::shared_ptr<Expr> LambdaSubstitute(const LambdaExpr& expr, IdExpr::Name name, uint64_t value) {
@@ -1373,6 +1492,11 @@ std::shared_ptr<Expr> BuildShl1Simplified(const UnaryOpExpr& expr) {
 std::shared_ptr<Expr> BuildShr1Simplified(const UnaryOpExpr& expr) {
   std::shared_ptr<Expr> simplified_arg = expr.arg()->simplified();
 
+  {
+    std::shared_ptr<Expr> removed_arg = RemoveBitOperation(*simplified_arg, 1);
+    if (removed_arg) simplified_arg = removed_arg->simplified();
+  }
+
   // Constant folding.
   uint64_t value;
   if (MatchConstant(*simplified_arg, &value)) {
@@ -1434,6 +1558,11 @@ std::shared_ptr<Expr> BuildShr1Simplified(const UnaryOpExpr& expr) {
 
 std::shared_ptr<Expr> BuildShr4Simplified(const UnaryOpExpr& expr) {
   std::shared_ptr<Expr> simplified_arg = expr.arg()->simplified();
+
+  {
+    std::shared_ptr<Expr> removed_arg = RemoveBitOperation(*simplified_arg, 0xF);
+    if (removed_arg) simplified_arg = removed_arg->simplified();
+  }
 
   // Constant folding.
   uint64_t value;
@@ -1503,6 +1632,11 @@ std::shared_ptr<Expr> BuildShr4Simplified(const UnaryOpExpr& expr) {
 
 std::shared_ptr<Expr> BuildShr16Simplified(const UnaryOpExpr& expr) {
   std::shared_ptr<Expr> simplified_arg = expr.arg()->simplified();
+
+  {
+    std::shared_ptr<Expr> removed_arg = RemoveBitOperation(*simplified_arg, 0xFFFFFFFF);
+    if (removed_arg) simplified_arg = removed_arg->simplified();
+  }
 
   // Constant folding.
   uint64_t value;
@@ -1594,13 +1728,23 @@ std::shared_ptr<Expr> BuildAndSimplified(const BinaryOpExpr& expr) {
   }
 
   // (and 0xFFFFFFFFFFFFFFFF X) -> X
-  if (MatchConstant(*simplified_arg1, &value) && value == 0xFFFFFFFFFFFFFFFF) {
-    return simplified_arg2;
+  if (MatchConstant(*simplified_arg1, &value)) {
+    if (value == 0xFFFFFFFFFFFFFFFF) {
+      return simplified_arg2;
+    }
+
+    std::shared_ptr<Expr> arg2_1 = RemoveBitOperation(*simplified_arg2, ~value);
+    if (arg2_1) simplified_arg2 = arg2_1->simplified();
   }
 
   // (and X 0xFFFFFFFFFFFFFFFF) -> X
-  if (MatchConstant(*simplified_arg2, &value) && value == 0xFFFFFFFFFFFFFFFF) {
-    return simplified_arg1;
+  if (MatchConstant(*simplified_arg2, &value)) {
+    if (value == 0xFFFFFFFFFFFFFFFF) {
+      return simplified_arg1;
+    }
+
+    std::shared_ptr<Expr> arg1_1 = RemoveBitOperation(*simplified_arg1, ~value);
+    if (arg1_1) simplified_arg1 = arg1_1->simplified();
   }
 
   // (and (not X) X) -> 0
@@ -1667,14 +1811,24 @@ std::shared_ptr<Expr> BuildOrSimplified(const BinaryOpExpr& expr) {
     return ConstantExpr::Create(0xFFFFFFFFFFFFFFFF);
   }
 
-  // (or 0 X) -> X
-  if (MatchConstant(*simplified_arg1, &value) && value == 0) {
-    return simplified_arg2;
+  if (MatchConstant(*simplified_arg1, &value)) {
+    // (or 0 X) -> X
+    if (value == 0) {
+      return simplified_arg2;
+    }
+
+    std::shared_ptr<Expr> arg2_1 = RemoveBitOperation(*simplified_arg2, value);
+    if (arg2_1) simplified_arg2 = arg2_1->simplified();
   }
 
-  // (or X 0) -> X
-  if (MatchConstant(*simplified_arg2, &value) && value == 0) {
-    return simplified_arg1;
+  if (MatchConstant(*simplified_arg2, &value)) {
+    // (or X 0) -> X
+    if (value == 0) {
+      return simplified_arg1;
+    }
+
+    std::shared_ptr<Expr> arg1_1 = RemoveBitOperation(*simplified_arg1, value);
+    if (arg1_1) simplified_arg1 = arg1_1->simplified();
   }
 
   // Constant folding.
@@ -1810,6 +1964,14 @@ std::shared_ptr<Expr> BuildXorSimplified(const BinaryOpExpr& expr) {
     return ConstantExpr::Create(0xFFFFFFFFFFFFFFFF);
   }
 
+  // (xor (nox A) (not B)) -> (xor A B)
+  std::shared_ptr<Expr> arg1, arg2;
+  if (MatchUnaryOp(*simplified_arg1, UnaryOpExpr::Type::NOT, &arg1) &&
+      MatchUnaryOp(*simplified_arg2, UnaryOpExpr::Type::NOT, &arg2)) {
+    return BinaryOpExpr::Create(
+        BinaryOpExpr::Type::XOR, arg1, arg2)->simplified();
+  }
+
   // Constant folding.
   uint64_t value1, value2;
   if (MatchConstant(*simplified_arg1, &value1) &&
@@ -1841,7 +2003,6 @@ std::shared_ptr<Expr> BuildXorSimplified(const BinaryOpExpr& expr) {
     }
   }
 
-  std::shared_ptr<Expr> arg1, arg2;
   if (MatchBinaryOp(*simplified_arg1, BinaryOpExpr::Type::XOR, &arg1, &arg2)) {
     if (arg1->EqualTo(*simplified_arg2)) return arg2;
     if (arg2->EqualTo(*simplified_arg2)) return arg1;

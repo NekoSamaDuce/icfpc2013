@@ -1150,6 +1150,43 @@ TEST(SimplifyConstantTest, Simple) {
   ASSERT_EQ(std::static_pointer_cast<ConstantExpr>(s_deadbeef)->value(), 0xdeadbeefU);
 }
 
+TEST(SimplifyRemoveBitOpTest, A) {
+  std::shared_ptr<Expr> e = Parse("(not (or x (not (or 1 x))))");
+  std::shared_ptr<Expr> s = RemoveBitOperation(*e, 1);
+  ASSERT_TRUE(s.get());
+  ASSERT_TRUE(s->EqualTo(*Parse("(not (or x (not x)))")));
+}
+
+TEST(SimplifyRemoveBitOpTest, A2) {
+  std::shared_ptr<Expr> e = Parse("(and (not x) (not 1))");
+  e = e->simplified();
+  std::shared_ptr<Expr> s = RemoveBitOperation(*e, 1);
+  ASSERT_TRUE(s.get());
+  ASSERT_TRUE(s->EqualTo(*Parse("(not x)")));
+}
+
+TEST(SimplifyRemoveBitOpTest, A3) {
+  // td::shared_ptr<Expr> e = Parse("(not (or x (not (xor 1 x)))");
+  std::shared_ptr<Expr> e = Parse("(not (or x (not (xor 1 x))))");
+  std::shared_ptr<Expr> s = RemoveBitOperation(*e, 1);
+  ASSERT_TRUE(s.get());
+  ASSERT_TRUE(s->EqualTo(*Parse("(not (or x (not x)))")));
+}
+
+TEST(SimplifyRemoveBitOpTest, B)  {
+  std::shared_ptr<Expr> e = Parse("(shr1 (not (or x (not (or 1 x)))))");
+  std::shared_ptr<Expr> s = e->simplified();
+  ASSERT_EQ(s->op_type(), CONSTANT) << s->ToString();
+  ASSERT_EQ(std::static_pointer_cast<ConstantExpr>(s)->value(), 0U);
+}
+
+TEST(SimplifyRemoveBitOpTest, C) {
+  std::shared_ptr<Expr> e = Parse("(shr1 (not (or x (not (xor 1 x)))))");
+  std::shared_ptr<Expr> s = e->simplified();
+  ASSERT_EQ(s->op_type(), CONSTANT) << s->ToString();
+  ASSERT_EQ(std::static_pointer_cast<ConstantExpr>(s)->value(), 0U);
+}
+
 int main(int argc, char **argv) {
   google::InstallFailureSignalHandler();
   google::InitGoogleLogging(argv[0]);
