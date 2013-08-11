@@ -67,8 +67,8 @@ class Alice(object):
     print >>detail, 'then_expected:', ','.join(['0x%016x' % x for x in then_expected])
     detail.flush()
 
-    logging.info('*** Running Alice *** [ %d vs. %d ]',
-                 len(else_argument), len(then_argument))
+    logging.info('*** Running Alice *** [ %d vs. %d ] T/O=%d',
+                 len(else_argument), len(then_argument), timeout_sec)
 
     request = StringIO.StringIO()
     print >>request, 'request0'
@@ -143,8 +143,9 @@ def SolveInternal(problem, random_io_pairs, alice, detail,
       # aaaaaaaaaa no example
 
     trial += 1
-    if trial % 5 == 0:
+    if trial >= 5:
       initial_wait += INITIAL_WAIT_INCREASE
+      bucketize_wait = max(bucketize_wait, initial_wait)
 
   buckets = [(else_argument, else_expected), (then_argument, then_expected)]
 
