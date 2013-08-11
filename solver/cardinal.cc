@@ -296,6 +296,8 @@ std::shared_ptr<Expr> Cardinal(const Key& arguments,
   size_dict.insert(std::make_pair(arguments, 1));
 
   for (int size = 2; size <= max_size; ++size) {
+    LOG(INFO) << "Size = " << size;
+
     for (const auto& pair : expr_dicts[size - 1]) {
       for (OpType type : unary_op_types) {
         Key new_value = EvalUnaryImmediate(type, pair.first);
@@ -305,6 +307,7 @@ std::shared_ptr<Expr> Cardinal(const Key& arguments,
         }
       }
     }
+    LOG(INFO) << "  Dict[" << size << "] = " << expr_dicts[size].size() << " : Unary done";
 
     for (int arg1_size = 1; arg1_size < size - 1; ++arg1_size) {
       int arg2_size = size - 1 - arg1_size;
@@ -320,6 +323,7 @@ std::shared_ptr<Expr> Cardinal(const Key& arguments,
         }
       }
     }
+    LOG(INFO) << "  Dict[" << size << "] = " << expr_dicts[size].size() << " : Binary done";
 
     if (op_type_set & IF0) {
       for (int arg1_size = 1; arg1_size < size - 2; ++arg1_size) {
@@ -340,6 +344,7 @@ std::shared_ptr<Expr> Cardinal(const Key& arguments,
         }
       }
     }
+    LOG(INFO) << "  Dict[" << size << "] = " << expr_dicts[size].size() << " : If0 done";
 
     // TODO: Find it earlier.
     std::map<Key, Back>::iterator found = expr_dicts[size].find(expecteds);
