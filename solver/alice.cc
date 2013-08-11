@@ -754,7 +754,7 @@ int main(int argc, char* argv[]) {
 
       // TODO
       std::shared_ptr<Expr> cond_expr =
-          Cardinal(condition_arguments, condition_expecteds, expr_size, op_type_set,
+          Cardinal(condition_arguments, condition_expecteds, expr_size, (op_type_set & ~OpType::FOLD),
                    is_bonus ? BONUS_CONDITION : CONDITION,
                    timeout_sec);
       if (!cond_expr.get()) {
