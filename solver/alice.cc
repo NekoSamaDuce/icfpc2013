@@ -715,12 +715,24 @@ int main(int argc, char* argv[]) {
           Cardinal(condition_arguments, condition_expecteds, expr_size, op_type_set,
                    is_bonus ? BONUS_CONDITION : CONDITION,
                    timeout_sec);
+      if (!cond_expr.get()) {
+        std::cout << std::endl;
+        continue;
+      }
       std::shared_ptr<Expr> then_body =
           Cardinal(refinement_arguments, refinement_expecteds, expr_size, op_type_set, SOLVE,
                    timeout_sec);
+      if (!then_body.get()) {
+        std::cout << std::endl;
+        continue;
+      }
       std::shared_ptr<Expr> else_body =
           Cardinal(arguments, expecteds, expr_size, op_type_set, SOLVE,
                    timeout_sec);
+      if (!else_body.get()) {
+        std::cout << std::endl;
+        continue;
+      }
       std::shared_ptr<Expr> expr =
           is_bonus ?
           LambdaExpr::Create(If0Expr::Create(
@@ -730,8 +742,14 @@ int main(int argc, char* argv[]) {
           LambdaExpr::Create(If0Expr::Create(cond_expr, then_body, else_body));
       std::cout << *expr << std::endl;
     } else {
-      std::shared_ptr<Expr> expr =
-          LambdaExpr::Create(Cardinal(arguments, expecteds, expr_size, op_type_set, SOLVE, timeout_sec));
+      std::shared_ptr<Expr> body =
+          Cardinal(arguments, expecteds, expr_size, op_type_set, SOLVE, timeout_sec);
+      if (!body.get()) {
+        std::cout << std::endl;
+        continue;
+      }
+
+      std::shared_ptr<Expr> expr = LambdaExpr::Create(body);
       std::cout << *expr << std::endl;
     }
   }  // end of request loop
