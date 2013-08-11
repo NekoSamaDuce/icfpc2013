@@ -142,7 +142,7 @@ Key EvalUnaryImmediate(UnaryOpExpr::Type type, const Key& value) {
 
 
 Key EvalBinaryImmediate(BinaryOpExpr::Type type,
-                             const Key& value1, const Key& value2) {
+                        const Key& value1, const Key& value2) {
   Key result;
   switch (type) {
   case BinaryOpExpr::Type::AND:
@@ -164,6 +164,19 @@ Key EvalBinaryImmediate(BinaryOpExpr::Type type,
   default:
     LOG(FATAL) << "Unknown BinaryOpType.";
   }
+}
+
+
+Key EvalIfImmediate(const Key& value1, const Key& value2, const Key& value3) {
+  Key result;
+  for (size_t i = 0; i < value1.size(); ++i) {
+    if (value1[i] == 0) {
+      result.push_back(value2[i]);
+    } else {
+      result.push_back(value3[i]);
+    }
+  }
+  return result;
 }
 
 
@@ -233,6 +246,26 @@ void Cardinal(const Key& arguments,
               expr_dicts[size].insert(std::make_pair(new_value,
                                                      Back { BinaryOpExpr::ToOpType(type),
                                                             &pair1.first, &pair2.first }));
+            }
+          }
+        }
+      }
+    }
+
+    if (op_type_set & IF0) {
+      for (int arg1_size = 1; arg1_size < size - 2; ++arg1_size) {
+        for (int arg2_size = 1; arg2_size < size - arg1_size - 1; ++arg2_size) {
+          int arg3_size = size - 1 - arg1_size - arg2_size;
+          for (const auto& pair1 : expr_dicts[arg1_size]) {
+            for (const auto& pair2 : expr_dicts[arg2_size]) {
+              for (const auto& pair3 : expr_dicts[arg3_size]) {
+                Key new_value = EvalIfImmediate(pair1.first, pair2.first, pair3.first);
+                if (size_dict.insert(std::make_pair(new_value, size)).second) {
+                  expr_dicts[size].insert(std::make_pair(new_value,
+                                                         Back { OpType::IF0,
+                                                                &pair1.first, &pair2.first, &pair3.first }));
+                }
+              }
             }
           }
         }
