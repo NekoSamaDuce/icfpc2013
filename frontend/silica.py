@@ -133,7 +133,7 @@ def main():
         [len(programs) for _, programs in clusters], reverse=True)
     logging.info('Candidate programs: %d', sum(cluster_sizes_decreasing))
     logging.info('Candidate clusters: %d', len(clusters))
-    logging.info('Cluster sizes: %s', ', '.join(map(str, cluster_sizes_decreasing)))
+    #logging.info('Cluster sizes: %s', ', '.join(map(str, cluster_sizes_decreasing)))
 
     if FLAGS.max_cluster_size > 0 and cluster_sizes_decreasing[0] > FLAGS.max_cluster_size:
       logging.error('Maximum cluster size was above threshold (%d)', FLAGS.max_cluster_size)

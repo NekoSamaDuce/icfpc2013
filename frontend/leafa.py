@@ -154,7 +154,7 @@ def main():
         [len(programs) for _, programs, _, _ in clusters], reverse=True)
     logging.info('Candidate programs: %d', sum(cluster_sizes_decreasing))
     logging.info('Candidate clusters: %d', len(clusters))
-    logging.info('Cluster sizes: %s', ', '.join(map(str, cluster_sizes_decreasing)))
+    #logging.info('Cluster sizes: %s', ', '.join(map(str, cluster_sizes_decreasing)))
 
     logging.info('Issueing /eval...')
     outputs = api.Eval(problem.id, arguments)
