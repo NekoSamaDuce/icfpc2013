@@ -178,7 +178,7 @@ def main():
 
     fullbits = (1 << len(outputs)) - 1
     cand = []
-    try_counter_example_limit = 10000
+    try_counter_example_limit = 50000
 
     high_t_map = dict()
     for (t_bv, t_progs) in t_map.items():
@@ -194,22 +194,13 @@ def main():
       logging.info("Full hit found: %d", len(cand))
 
     def cand_add(cs,ts,es):
-      lim = 10
-      if found_fullhit:
-        lim = 3
-      if len(cand) < try_counter_example_limit:
-        lim = 3
-      if len(cand) < try_counter_example_limit*10:
-        lim = 1
-      tss = ts if len(ts)<lim else random.sample(ts, lim)
-      css = cs if len(cs)<lim else random.sample(cs, lim)
-      ess = es if len(es)<lim else random.sample(es, lim)
+      tss,css,ess=ts,cs,es
       for c in css:
         for t in tss:
           for e in ess:
             cand.append((c, t, e))
 
-    if len(high_t_map) < 500:
+    if not found_fullhit and len(high_t_map) < 500:
       # First filter by high_bit_candidates
       for (t_bv, t_progs) in high_t_map.items(): # find high bitters
         for (e_bv, e_progs) in t_map.items():
@@ -230,7 +221,12 @@ def main():
             ok_as_then.extend(t_progs)
           if (c_bv_inv & t_bv) == c_bv_inv:
             ok_as_else.extend(t_progs)
-        cand_add(c_progs, ok_as_then, ok_as_else)
+        if len(ok_as_then) and len(ok_as_else) and found_fullhit:
+          cand_add([c_progs[0]], [ok_as_then[0]], [ok_as_else[0]])
+        else:
+          cand_add(c_progs, ok_as_then, ok_as_else)
+        if found_fullhit and len(cand) > try_counter_example_limit:
+          break
 
     logging.info("Candidate size: %d", len(cand))
     if len(cand) > try_counter_example_limit:
