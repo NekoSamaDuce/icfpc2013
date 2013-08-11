@@ -494,9 +494,6 @@ int main(int argc, char* argv[]) {
   for (std::string line; std::getline(std::cin, line); ) {
     // READ REQUEST!
     CHECK_EQ("request0", line);
-    // random_seed
-    CHECK(std::getline(std::cin, line));
-    std::srand(strtoull(line.c_str(), NULL, 0));
     // timeout_sec
     CHECK(std::getline(std::cin, line));
     timeout_sec = strtoull(line.c_str(), NULL, 0);
@@ -519,6 +516,9 @@ int main(int argc, char* argv[]) {
     // refinement_expecteds
     CHECK(std::getline(std::cin, line));
     refinement_expecteds = ParseNumberSet(line);
+    // random_seed
+    CHECK(std::getline(std::cin, line));
+    std::srand(strtoull(line.c_str(), NULL, 0));
 
     if (!refinement_arguments.empty()) {
       std::vector<uint64_t> condition_arguments;

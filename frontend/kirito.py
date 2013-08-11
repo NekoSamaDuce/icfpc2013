@@ -49,9 +49,10 @@ class Alice(object):
     self._WaitReady()
 
   def _WaitReady(self):
-    assert self.proc.stdout.readline() == 'ready'
+    msg = self.proc.stdout.readline().strip()
+    assert msg == 'ready', msg
 
-  def Request(self, problem, else_argument, else_expect, then_argument, then_expect,
+  def Request(self, problem, else_argument, else_expected, then_argument, then_expected,
               timeout_sec, detail):
     random_seed = random.randrange(0, 1000000)
 
@@ -64,10 +65,8 @@ class Alice(object):
     print >>detail, 'then_expected:', ','.join(['0x%016x' % x for x in then_expected])
     detail.flush()
 
-    logging.info('')
     logging.info('*** Running Alice *** [ %d vs. %d ]',
                  len(else_argument), len(then_argument))
-    logging.info('')
 
     request = StringIO.StringIO()
     print >>request, 'request0'
@@ -75,20 +74,16 @@ class Alice(object):
     print >>request, problem.size
     print >>request, ','.join(problem.operators)
     print >>request, ','.join(map(str, else_argument))
-    print >>request, ','.join(map(str, else_expect))
+    print >>request, ','.join(map(str, else_expected))
     print >>request, ','.join(map(str, then_argument))
-    print >>request, ','.join(map(str, then_expect))
+    print >>request, ','.join(map(str, then_expected))
     print >>request, random_seed
     request = request.getvalue()
-
-    logging.info('request:')
-    for line in request.splitlines():
-      logging.info('  %s', line)
 
     self.proc.stdin.write(request)
     self.proc.stdin.flush()
 
-    program = self.proc.stdout.readline()
+    program = self.proc.stdout.readline().strip()
     return program
 
 
