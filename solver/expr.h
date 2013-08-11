@@ -56,9 +56,11 @@ class Expr : public std::enable_shared_from_this<Expr> {
   }
 
   std::size_t depth() const { return depth_; }
-  int in_fold() const { return in_fold_; }
-  bool has_y() const { return in_fold_ & 1; }
-  bool has_z() const { return in_fold_ & 2; }
+  bool in_fold() const { return variables_ & 0x6; }  // has_y || has_z
+  bool has_x() const { return variables_ & 1; }
+  bool has_y() const { return variables_ & 2; }
+  bool has_z() const { return variables_ & 4; }
+  int variables() const { return variables_; }
   bool has_fold() const { return has_fold_; }
 
   // Returns the OpType of this expression. Maybe virtual type (e.g. CONSTANT or ID).
@@ -76,7 +78,7 @@ class Expr : public std::enable_shared_from_this<Expr> {
   }
 
   uint64_t Eval(const Env& env) const {
-    if (!in_fold_) {
+    if (!in_fold()) {
       if (is_eval_cached_ && x_cache_ == env.x) {
         return eval_cache_;
       }
@@ -106,9 +108,9 @@ class Expr : public std::enable_shared_from_this<Expr> {
   friend std::ostream& operator<<(std::ostream&, const Expr&);
 
   Expr(OpType op_type, int op_type_set, std::size_t depth,
-       int in_fold, bool has_fold)
+       int variables, bool has_fold)
       : op_type_(op_type), op_type_set_(op_type_set), depth_(depth),
-        in_fold_(in_fold), has_fold_(has_fold), is_simplified_(false), is_eval_cached_(false) {}
+        variables_(variables), has_fold_(has_fold), is_simplified_(false), is_eval_cached_(false) {}
   virtual void Output(std::ostream* os) const = 0;
   virtual uint64_t EvalImpl(const Env& env) const = 0;
   virtual bool EqualToImpl(const Expr& other) const = 0;
@@ -118,7 +120,7 @@ class Expr : public std::enable_shared_from_this<Expr> {
   int op_type_set_;
 
   std::size_t depth_;
-  int in_fold_;  // in_fold_&1 ==> has_y,  in_fold&2 ==> has_z
+  int variables_;  // x: 1, y: 2, z: 4
   bool has_fold_;
 
   bool is_simplified_;
@@ -142,7 +144,7 @@ class LambdaExpr : public Expr {
  public:
   LambdaExpr(std::shared_ptr<Expr> body)
       : Expr(OpType::LAMBDA, body->op_type_set(), 1 + body->depth(),
-             body->in_fold(), body->has_fold()),
+             body->variables(), body->has_fold()),
         body_(body) {
   }
 
@@ -239,7 +241,7 @@ class IdExpr : public Expr {
   enum Name { X, Y, Z, };
 
   explicit IdExpr(Name name) :
-      Expr(OpType::ID, 0, 1, (name == Name::X ? 0 : name == Name::Y ? 1 : 2), false), name_(name) {
+      Expr(OpType::ID, 0, 1, (name == Name::X ? 1 : name == Name::Y ? 2 : 4), false), name_(name) {
     is_simplified_ = true;
   }
 
@@ -310,7 +312,7 @@ class If0Expr : public Expr {
       : Expr(OpType::IF0,
              OpType::IF0 | cond->op_type_set() | then_body->op_type_set() | else_body->op_type_set(),
              1 + cond->depth() + then_body->depth() + else_body->depth(),
-             cond->in_fold() | then_body->in_fold() | else_body->in_fold(),
+             cond->variables() | then_body->variables() | else_body->variables(),
              cond->has_fold() | then_body->has_fold() | else_body->has_fold()),
         cond_(cond), then_body_(then_body), else_body_(else_body) {
   }
@@ -377,14 +379,18 @@ class FoldExpr : public Expr {
            std::shared_ptr<Expr> body)
       : Expr(OpType::FOLD,
              OpType::FOLD | value->op_type_set() | init_value->op_type_set() | body->op_type_set(),
-             2 + value->depth() + init_value->depth() + body->depth(), false, true),
+             2 + value->depth() + init_value->depth() + body->depth(),
+             body->variables() & 1,  // keep x
+             true),
         value_(value), init_value_(init_value), body_(body) {
   }
 
   explicit FoldExpr(std::shared_ptr<Expr> body)
       : Expr(OpType::FOLD,  // Use FOLD. not TFOLD.
              OpType::TFOLD | body->op_type_set(),
-             2 + 1 + 1 + body->depth(), false, true),
+             2 + 1 + 1 + body->depth(),
+             body->variables() & 1,  // keep x
+             true),
         value_(IdExpr::CreateX()), init_value_(ConstantExpr::CreateZero()), body_(body) {
   }
 
@@ -477,7 +483,7 @@ class UnaryOpExpr : public Expr {
 
   UnaryOpExpr(Type type, std::shared_ptr<Expr> arg)
       : Expr(ToOpType(type), ToOpType(type) | arg->op_type_set(),
-             1 + arg->depth(), arg->in_fold(), arg->has_fold()),
+             1 + arg->depth(), arg->variables(), arg->has_fold()),
         type_(type), arg_(arg) {
   }
 
@@ -558,7 +564,7 @@ class BinaryOpExpr : public Expr {
   BinaryOpExpr(Type type, std::shared_ptr<Expr> arg1, std::shared_ptr<Expr> arg2)
       : Expr(ToOpType(type), ToOpType(type) | arg1->op_type_set() | arg2->op_type_set(),
              1 + arg1->depth() + arg2->depth(),
-             arg1->in_fold() | arg2->in_fold(),
+             arg1->variables() | arg2->variables(),
              arg1->has_fold() | arg2->has_fold()),
         type_(type), arg1_(arg1), arg2_(arg2) {
   }
@@ -781,6 +787,12 @@ uint64_t GetZeroBit(const Expr& expr) {
   if (MatchBinaryOp(expr, BinaryOpExpr::Type::XOR, &arg1, &arg2)) {
     return (GetZeroBit(*arg1) & GetZeroBit(*arg2)) |
         (GetOneBit(*arg1) & GetOneBit(*arg2));
+  }
+
+  IdExpr::Name name;
+  if (MatchId(expr, &name) && name == IdExpr::Name::Y) {
+    // Due to the definition of the Fold.
+    return 0xFFFFFFFFFFFFFF00;
   }
 
   std::shared_ptr<Expr> cond;
@@ -1097,6 +1109,32 @@ std::shared_ptr<Expr> BuildFoldSimplified(const FoldExpr& expr) {
   std::shared_ptr<Expr> simplified_init_value = expr.init_value()->simplified();
   std::shared_ptr<Expr> simplified_body = expr.body()->simplified();
 
+  uint64_t value;
+  if (MatchConstant(*simplified_value, &value)) {
+    if (!simplified_body->has_z()) {
+      std::shared_ptr<Expr> substituted_body =
+          Substitute(*simplified_body, IdExpr::Name::Y, (value >> 56));
+      if (substituted_body)
+        simplified_body = substituted_body->simplified();
+    } else {
+      bool is_same = true;
+      for (int i = 1; i < 8; ++i) {
+        if ((value & 0xFF) != ((value >> (i * 8)) & 0xFF)) {
+          is_same = false;
+          break;
+        }
+      }
+
+      // All 8-bytes has a same bit pattern.
+      if (is_same) {
+        std::shared_ptr<Expr> substituted_body =
+            Substitute(*simplified_body, IdExpr::Name::Y, (value & 0xFF));
+        if (substituted_body)
+          simplified_body = substituted_body->simplified();
+      }
+    }
+  }
+
   if (!simplified_body->in_fold()) {
     return simplified_body;
   }
@@ -1112,6 +1150,29 @@ std::shared_ptr<Expr> BuildFoldSimplified(const FoldExpr& expr) {
 
   if (!simplified_body->has_z()) {
     simplified_init_value = ConstantExpr::CreateZero();
+  }
+
+  // Constant folding.
+  uint64_t folded;
+  if (MatchConstant(*simplified_value, &value) &&
+      MatchConstant(*simplified_init_value, &folded)) {
+    bool failed = false;
+    for (int i = 0; i < 8; ++i, value >>= 8) {
+      std::shared_ptr<Expr> e =
+          simplified_body->has_z() ?
+          Substitute(*simplified_body, IdExpr::Name::Z, folded)->simplified() :
+          simplified_body;
+      e = e->has_y() ?
+          Substitute(*e, IdExpr::Name::Y, (value & 0xFF))->simplified() :
+          e;
+      if (!MatchConstant(*e, &folded)) {
+        failed = true;
+        break;
+      }
+    }
+    if (!failed) {
+      return ConstantExpr::Create(folded);
+    }
   }
 
   if (expr.value() == simplified_value &&
