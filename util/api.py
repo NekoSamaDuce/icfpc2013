@@ -102,7 +102,7 @@ def GenericRequest(endpoint, request=None):
 def Train(size, operators, auto_retry=True):
   if auto_retry:
     return WithRetry(Train, size, operators, auto_retry=False)
-  assert 3 <= size <= 30 or size == 42, 'size should be in [3, 30] or 42'
+  assert 3 <= size <= 30 or size in (42, 137), 'size should be in [3, 30] or 42 or 137'
   assert operators in ('', 'tfold', 'fold'), (
     'operators must be either an empty, tfold or fold')
   request = {'size': size, 'operators': operators}
