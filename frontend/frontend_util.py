@@ -51,7 +51,7 @@ def GetProblemsByFlags():
     problems = []
     while len(problems) < FLAGS.train_count:
       p = api.Train(FLAGS.size, FLAGS.operators)
-      if FLAGS.train_exclude_fold and 'fold' in p.operators or 'tfold' in p.operators:
+      if FLAGS.train_exclude_fold and ('fold' in p.operators or 'tfold' in p.operators):
         continue
       problems.append(p)
   elif FLAGS.mode == 'oneoff':
