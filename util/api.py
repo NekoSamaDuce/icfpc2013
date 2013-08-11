@@ -19,6 +19,10 @@ class Solved(Exception):
   pass
 
 
+class Expired(ApiError):
+  pass
+
+
 class Problem(object):
   def __init__(self, id, size, operators, answer=None, solved=None, time_left=None):
     self.id = id
@@ -96,6 +100,8 @@ def GenericRequest(endpoint, request=None):
     return response.json()
   if response.status_code == 429:
     raise RateLimited()
+  if response.status_code == 410:
+    raise Expired()
   raise ApiError('status_code = %d' % response.status_code)
 
 

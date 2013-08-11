@@ -43,6 +43,10 @@ gflags.DEFINE_string(
     'Problem details for post-mortem are logged to this directory.')
 gflags.MarkFlagAsRequired('detail_log_dir')
 
+gflags.DEFINE_boolean(
+    'keep_going', False,
+    'Keep going even on expiration')
+
 
 def RunCardinalSolver(problem, argument, expected,
                       refinement_argument, refinement_expected, detail, timeout_sec):
@@ -232,8 +236,19 @@ def main():
     logging.info('Flag to recover: --problem_id=%s --size=%d --operators=%s',
                  problem.id, problem.size, ','.join(problem.operators))
 
-    with open(os.path.join(FLAGS.detail_log_dir, '%s.txt' % problem.id), 'w') as detail:
-      Solve(problem, detail)
+    try:
+      with open(os.path.join(FLAGS.detail_log_dir, '%s.txt' % problem.id), 'w') as detail:
+        Solve(problem, detail)
+    except api.Expired:
+      logging.error('')
+      logging.error(' !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! ')
+      logging.error('')
+      logging.error('        P R O B L E M  E X P I R E D')
+      logging.error('')
+      logging.error(' !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! ')
+      logging.error('')
+      if not FLAGS.keep_going:
+        raise
 
 
 if __name__ == '__main__':
