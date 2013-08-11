@@ -2,7 +2,7 @@
 
 AR=ar
 CXX=g++
-CXXFLAGS=-std=gnu++0x -Werror -Wall -O2 -lglog -lgflags
+CXXFLAGS=-std=gnu++0x -Werror -Wall -O2 -lglog -lgflags -fno-omit-frame-pointer
 TEST_CXXFLAGS=$(CXXFLAGS) -Ithird_party/gtest/include -lpthread
 BINARIES=genall cluster_main simplify_main batch_evaluate synthesis cardinal dup_viewer
 TEST_BINARIES=unittest simplify_unittest genall_unittest
