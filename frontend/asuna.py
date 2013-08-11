@@ -46,8 +46,10 @@ gflags.MarkFlagAsRequired('detail_log_dir')
 
 def RunCardinalSolver(problem, argument, expected,
                       refinement_argument, refinement_expected, detail, timeout_sec):
+  random_seed = random.randrange(0, 1000000)
   print >>detail, ''
   print >>detail, '=== Cardinal Run ==='
+  print >>detail, 'random_seed:', random_seed
   print >>detail, 'argument:', ','.join(['0x%016x' % x for x in argument])
   print >>detail, 'expected:', ','.join(['0x%016x' % x for x in expected])
   print >>detail, 'refinement_argument:', ','.join(['0x%016x' % x for x in refinement_argument])
@@ -63,6 +65,7 @@ def RunCardinalSolver(problem, argument, expected,
           '--expected=%s' % ','.join(map(str, expected)),
           '--refinement_argument=%s' % ','.join(map(str, refinement_argument)),
           '--refinement_expected=%s' % ','.join(map(str, refinement_expected)),
+          '--random_seed=%d' % random_seed,
           ]
   logging.info('command line: %s', ' '.join(args))
   proc = subprocess.Popen(args, stdout=subprocess.PIPE)
