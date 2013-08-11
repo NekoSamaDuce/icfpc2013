@@ -132,13 +132,13 @@ def main():
 
   q = Queue.Queue()
 
+  for problem in problems:
+    q.put(problem)
+
   for _ in xrange(FLAGS.threads):
     th = threading.Thread(target=Worker, args=(q,))
     th.daemon = True
     th.start()
-
-  for problem in problems:
-    q.put(problem)
 
   q.join()
 
