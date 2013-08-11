@@ -1216,6 +1216,19 @@ std::shared_ptr<Expr> BuildNotSimplified(const UnaryOpExpr& expr) {
             UnaryOpExpr::Create(UnaryOpExpr::Type::NOT, bin_arg.arg1()),
             ConstantExpr::Create(~value))->simplified();
       }
+      std::shared_ptr<Expr> nested_arg;
+      if (MatchUnaryOp(*bin_arg.arg1(), UnaryOpExpr::Type::NOT, &nested_arg)) {
+        return BinaryOpExpr::Create(
+            BinaryOpExpr::Type::OR,
+            nested_arg,
+            UnaryOpExpr::Create(UnaryOpExpr::Type::NOT, bin_arg.arg2()))->simplified();
+      }
+      if (MatchUnaryOp(*bin_arg.arg2(), UnaryOpExpr::Type::NOT, &nested_arg)) {
+        return BinaryOpExpr::Create(
+            BinaryOpExpr::Type::OR,
+            UnaryOpExpr::Create(UnaryOpExpr::Type::NOT, bin_arg.arg1()),
+            nested_arg)->simplified();
+      }
       break;
     }
 
@@ -1235,6 +1248,20 @@ std::shared_ptr<Expr> BuildNotSimplified(const UnaryOpExpr& expr) {
             UnaryOpExpr::Create(UnaryOpExpr::Type::NOT, bin_arg.arg1()),
             ConstantExpr::Create(~value))->simplified();
       }
+      std::shared_ptr<Expr> nested_arg;
+      if (MatchUnaryOp(*bin_arg.arg1(), UnaryOpExpr::Type::NOT, &nested_arg)) {
+        return BinaryOpExpr::Create(
+            BinaryOpExpr::Type::AND,
+            nested_arg,
+            UnaryOpExpr::Create(UnaryOpExpr::Type::NOT, bin_arg.arg2()))->simplified();
+      }
+      if (MatchUnaryOp(*bin_arg.arg2(), UnaryOpExpr::Type::NOT, &nested_arg)) {
+        return BinaryOpExpr::Create(
+            BinaryOpExpr::Type::AND,
+            UnaryOpExpr::Create(UnaryOpExpr::Type::NOT, bin_arg.arg1()),
+            nested_arg)->simplified();
+      }
+      break;
     }
 
     // (not (xor A B)) -> (xor (not A) B) or (xor A (not B))
@@ -1254,6 +1281,15 @@ std::shared_ptr<Expr> BuildNotSimplified(const UnaryOpExpr& expr) {
             BinaryOpExpr::Type::XOR,
             bin_arg.arg1(),
             ConstantExpr::Create(~value))->simplified();
+      }
+      std::shared_ptr<Expr> nested_arg;
+      if (MatchUnaryOp(*bin_arg.arg1(), UnaryOpExpr::Type::NOT, &nested_arg)) {
+        return BinaryOpExpr::Create(
+            BinaryOpExpr::Type::XOR, nested_arg, bin_arg.arg2())->simplified();
+      }
+      if (MatchUnaryOp(*bin_arg.arg2(), UnaryOpExpr::Type::NOT, &nested_arg)) {
+        return BinaryOpExpr::Create(
+            BinaryOpExpr::Type::XOR, bin_arg.arg1(), nested_arg)->simplified();
       }
       break;
     }
@@ -1660,6 +1696,68 @@ std::shared_ptr<Expr> BuildOrSimplified(const BinaryOpExpr& expr) {
     return ConstantExpr::Create(0xFFFFFFFFFFFFFFFF);
   }
 
+  std::shared_ptr<Expr> arg1, arg2;
+  if (MatchBinaryOp(*simplified_arg1, BinaryOpExpr::Type::OR, &arg1, &arg2)) {
+    if (arg1->EqualTo(*simplified_arg2) || arg2->EqualTo(*simplified_arg2)) {
+      return simplified_arg1;
+    }
+    if (MatchConstant(*arg1, &value1) && MatchConstant(*simplified_arg2, &value2)) {
+      return BinaryOpExpr::Create(
+          BinaryOpExpr::Type::OR,
+          ConstantExpr::Create(value1 | value2), arg2)->simplified();
+    }
+    if (MatchConstant(*arg2, &value1) && MatchConstant(*simplified_arg2, &value2)) {
+      return BinaryOpExpr::Create(
+          BinaryOpExpr::Type::OR,
+          ConstantExpr::Create(value1 | value2), arg1)->simplified();
+    }
+
+    if (MatchUnaryOp(*simplified_arg2, UnaryOpExpr::Type::NOT, &nested_arg) &&
+        (nested_arg->EqualTo(*arg1) || nested_arg->EqualTo(*arg2))) {
+      return ConstantExpr::Create(0xFFFFFFFFFFFFFFFF);
+    }
+
+    if (MatchUnaryOp(*arg1, UnaryOpExpr::Type::NOT, &nested_arg) &&
+        nested_arg->EqualTo(*simplified_arg2)) {
+      return ConstantExpr::Create(0xFFFFFFFFFFFFFFFF);
+    }
+    if (MatchUnaryOp(*arg2, UnaryOpExpr::Type::NOT, &nested_arg) &&
+        nested_arg->EqualTo(*simplified_arg2)) {
+      return ConstantExpr::Create(0xFFFFFFFFFFFFFFFF);
+    }
+  }
+
+  if (MatchBinaryOp(*simplified_arg2, BinaryOpExpr::Type::OR, &arg1, &arg2)) {
+    if (arg1->EqualTo(*simplified_arg1) || arg2->EqualTo(*simplified_arg1)) {
+      return simplified_arg2;
+    }
+
+    if (MatchConstant(*arg1, &value1) && MatchConstant(*simplified_arg1, &value2)) {
+      return BinaryOpExpr::Create(
+          BinaryOpExpr::Type::OR,
+          ConstantExpr::Create(value1 | value2), arg2)->simplified();
+    }
+    if (MatchConstant(*arg2, &value1) && MatchConstant(*simplified_arg1, &value2)) {
+      return BinaryOpExpr::Create(
+          BinaryOpExpr::Type::OR,
+          ConstantExpr::Create(value1 | value2), arg1)->simplified();
+    }
+
+    if (MatchUnaryOp(*simplified_arg1, UnaryOpExpr::Type::NOT, &nested_arg) &&
+        (nested_arg->EqualTo(*arg1) || nested_arg->EqualTo(*arg2))) {
+      return ConstantExpr::Create(0xFFFFFFFFFFFFFFFF);
+    }
+
+    if (MatchUnaryOp(*arg1, UnaryOpExpr::Type::NOT, &nested_arg) &&
+        nested_arg->EqualTo(*simplified_arg1)) {
+      return ConstantExpr::Create(0xFFFFFFFFFFFFFFFF);
+    }
+    if (MatchUnaryOp(*arg2, UnaryOpExpr::Type::NOT, &nested_arg) &&
+        nested_arg->EqualTo(*simplified_arg1)) {
+      return ConstantExpr::Create(0xFFFFFFFFFFFFFFFF);
+    }
+  }
+
   int cmp = simplified_arg1->CompareTo(*simplified_arg2);
 
   // (or X X) -> X
@@ -1741,6 +1839,16 @@ std::shared_ptr<Expr> BuildXorSimplified(const BinaryOpExpr& expr) {
     if (value2 == 0xFFFFFFFFFFFFFFFF) {
       return UnaryOpExpr::Create(UnaryOpExpr::Type::NOT, simplified_arg1)->simplified();
     }
+  }
+
+  std::shared_ptr<Expr> arg1, arg2;
+  if (MatchBinaryOp(*simplified_arg1, BinaryOpExpr::Type::XOR, &arg1, &arg2)) {
+    if (arg1->EqualTo(*simplified_arg2)) return arg2;
+    if (arg2->EqualTo(*simplified_arg2)) return arg1;
+  }
+  if (MatchBinaryOp(*simplified_arg2, BinaryOpExpr::Type::XOR, &arg1, &arg2)) {
+    if (arg1->EqualTo(*simplified_arg1)) return arg2;
+    if (arg2->EqualTo(*simplified_arg1)) return arg1;
   }
 
   // Sort the order of the operands.
