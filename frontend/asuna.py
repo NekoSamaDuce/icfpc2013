@@ -44,19 +44,25 @@ gflags.DEFINE_string(
 gflags.MarkFlagAsRequired('detail_log_dir')
 
 
-def RunCardinalSolver(problem, argument, expected, detail, timeout_sec):
+def RunCardinalSolver(problem, argument, expected,
+                      refinement_argument, refinement_expected, detail, timeout_sec):
   print >>detail, ''
   print >>detail, '=== Cardinal Run ==='
-  print >>detail, 'arguments:', ','.join(['0x%016x' % x for x in argument])
+  print >>detail, 'argument:', ','.join(['0x%016x' % x for x in argument])
   print >>detail, 'expected:', ','.join(['0x%016x' % x for x in expected])
+  print >>detail, 'refinement_argument:', ','.join(['0x%016x' % x for x in refinement_argument])
+  print >>detail, 'refinement_expected:', ','.join(['0x%016x' % x for x in refinement_expected])
   detail.flush()
 
-  logging.info('Running Cardinal System with %d arguments...', len(argument))
+  logging.info('Running Cardinal System with %d arguments, %d refinement argument',
+               len(argument), len(refinement_argument))
   args = [FLAGS.cardinal_solver,
           '--size=%d' % problem.size,
           '--operators=%s' % ','.join(problem.operators),
           '--argument=%s' % ','.join(map(str, argument)),
           '--expected=%s' % ','.join(map(str, expected)),
+          '--refinement_argument=%s' % ','.join(map(str, refinement_argument)),
+          '--refinement_expected=%s' % ','.join(map(str, refinement_expected)),
           ]
   proc = subprocess.Popen(args, stdout=subprocess.PIPE)
   if timeout_sec is not None:
@@ -72,7 +78,9 @@ def RunCardinalSolver(problem, argument, expected, detail, timeout_sec):
     timer.cancel()
   if proc.returncode != 0:
     return None
-  return output.strip()
+  program = output.strip()
+  assert program, 'no output from Cardinal'
+  return program
 
 
 def Guess(problem, program, detail):
@@ -92,6 +100,59 @@ def Guess(problem, program, detail):
   print >>detail, '=> rejected, but could not get a counterexample.'
   detail.flush()
   return None
+
+
+def SolveInternal(problem, random_io_pairs, detail):
+  refinement_argument = []
+  refinement_expected = []
+
+  while True:
+    # Sample 3 I/O randomly
+    argument = []
+    expected = []
+    for i, o in random.sample(random_io_pairs, FLAGS.initial_arguments):
+      argument.append(i)
+      expected.append(o)
+
+    program = RunCardinalSolver(
+        problem, argument, expected,
+        refinement_argument, refinement_expected, detail, 5)
+    if program:
+      # YES!!! We got some program!!!!!!!
+      example = Guess(problem, program, detail)
+      if example:
+        break
+      # aaaaaaaaaa no example
+
+  # put to else clause as far as possible
+  while True:
+    argument.append(example.argument)
+    expected.append(example.expected)
+  
+    program = RunCardinalSolver(
+        problem, argument, expected,
+        refinement_argument, refinement_expected, detail, 5)
+    if not program:
+      refinement_argument.append(argument.pop())
+      refinement_expected.append(expected.pop())
+      break
+
+    example = Guess(problem, program, detail)
+    if not example:
+      return SolveInternal(problem, random_io_pairs, detail)
+
+  # put all examples to then clause
+  while True:
+    program = RunCardinalSolver(
+        problem, argument, expected,
+        refinement_argument, refinement_expected, detail, None)
+
+    example = Guess(problem, program, detail)
+    if not example:
+      return SolveInternal(problem, random_io_pairs, detail)
+
+    refinement_argument.append(example.argument)
+    refinement_expected.append(example.expected)
 
 
 def Solve(problem, detail):
@@ -114,24 +175,7 @@ def Solve(problem, detail):
   detail.flush()
 
   try:
-    cardinal_argument = []
-    cardinal_expected = []
-    for i, o in random.sample(random_io_pairs, FLAGS.initial_arguments):
-      cardinal_argument.append(i)
-      cardinal_expected.append(o)
-
-    while True:
-      program = RunCardinalSolver(
-          problem, cardinal_argument, cardinal_expected, detail, None)
-      example = Guess(problem, program, detail)
-      if example:
-        cardinal_argument.append(example.argument)
-        cardinal_expected.append(example.expected)
-      else:
-        i, o = known_io_pairs.pop()
-        cardinal_argument.append(i)
-        cardinal_expected.append(o)
-
+    SolveInternal(problem, random_io_pairs, detail)
   except api.Solved:
     logging.info('')
     logging.info(u'*\u30fb\u309c\uff9f\uff65*:.\uff61. '
