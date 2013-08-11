@@ -80,6 +80,10 @@ class Alice(object):
     print >>request, random_seed
     request = request.getvalue()
 
+    print >>detail, 'protocol dump:'
+    detail.write(request)
+    detail.flush()
+
     self.proc.stdin.write(request)
     self.proc.stdin.flush()
 
