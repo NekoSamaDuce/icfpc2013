@@ -56,6 +56,8 @@ def RunCardinalSolver(problem, argument, expected):
 
 def Solve(problem, detail):
   print >>detail, problem
+  print >>detail, 'flags: --problem_id=%s --size=%d --operators=%s' % (
+      problem.id, problem.size, ','.join(problem.operators))
   print >>detail, ''
   detail.flush()
 
@@ -66,9 +68,8 @@ def Solve(problem, detail):
   known_io_pairs = zip(arguments, outputs)
 
   print >>detail, '=== First Eval ==='
-  print >>detail, 'arguments:', ','.join(['0x%016x' % x for x in arguments])
-  print >>detail, 'outputs:', ','.join(['0x%016x' % x for x in outputs])
-  print >>detail, ''
+  for argument, output in zip(arguments, outputs):
+    print >>detail, '0x%016x => 0x%016x' % (argument, output)
   detail.flush()
 
   cardinal_argument = []
@@ -79,6 +80,7 @@ def Solve(problem, detail):
     cardinal_expected.append(o)
 
   while True:
+    print >>detail, ''
     print >>detail, '=== Cardinal Run ==='
     print >>detail, 'arguments:', ','.join(['0x%016x' % x for x in cardinal_argument])
     print >>detail, 'expected:', ','.join(['0x%016x' % x for x in cardinal_expected])
