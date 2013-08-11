@@ -49,8 +49,10 @@ class Alice(object):
     self._WaitReady()
 
   def _WaitReady(self):
+    logging.info('Alice is booting. This can take a while and consumes a lot of RAM.')
     msg = self.proc.stdout.readline().strip()
     assert msg == 'ready', msg
+    logging.info('Alice READY!')
 
   def Request(self, problem, else_argument, else_expected, then_argument, then_expected,
               timeout_sec, detail):
