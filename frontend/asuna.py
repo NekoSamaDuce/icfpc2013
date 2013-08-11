@@ -106,14 +106,17 @@ def Guess(problem, program, detail):
   return None
 
 
+INITIAL_WAIT = 5
+INITIAL_WAIT_INCREASE = 5
 BUCKETIZE_WAIT_INIT = 5
 BUCKETIZE_WAIT_INCREASE = 5
 
 
-def SolveInternal(problem, random_io_pairs, detail, bucketize_wait=BUCKETIZE_WAIT_INIT):
+def SolveInternal(problem, random_io_pairs, detail, initial_wait=INITIAL_WAIT, bucketize_wait=BUCKETIZE_WAIT_INIT):
   refinement_argument = []
   refinement_expected = []
 
+  trial = 0
   while True:
     # Sample 3 I/O randomly
     argument = []
@@ -124,13 +127,17 @@ def SolveInternal(problem, random_io_pairs, detail, bucketize_wait=BUCKETIZE_WAI
 
     program = RunCardinalSolver(
         problem, argument, expected,
-        refinement_argument, refinement_expected, detail, 5)
+        refinement_argument, refinement_expected, detail, initial_wait)
     if program:
       # YES!!! We got some program!!!!!!!
       example = Guess(problem, program, detail)
       if example:
         break
       # aaaaaaaaaa no example
+
+    trial += 1
+    if trial % 5 == 0:
+      initial_wait += INITIAL_WAIT_INCREASE
 
   buckets = [(argument, expected), (refinement_argument, refinement_expected)]
 
@@ -148,7 +155,7 @@ def SolveInternal(problem, random_io_pairs, detail, bucketize_wait=BUCKETIZE_WAI
     if program:
       example = Guess(problem, program, detail)
       if not example:
-        return SolveInternal(problem, random_io_pairs, detail, bucketize_wait)
+        return SolveInternal(problem, random_io_pairs, detail, initial_wait, bucketize_wait)
       continue
 
     # damedatta... orz
@@ -165,12 +172,12 @@ def SolveInternal(problem, random_io_pairs, detail, bucketize_wait=BUCKETIZE_WAI
     if program:
       example = Guess(problem, program, detail)
       if not example:
-        return SolveInternal(problem, random_io_pairs, detail, bucketize_wait)
+        return SolveInternal(problem, random_io_pairs, detail, initial_wait, bucketize_wait)
       continue
 
     # docchi mo dame datta... orzorz
     return SolveInternal(problem, random_io_pairs, detail,
-                         bucketize_wait+BUCKETIZE_WAIT_INCREASE)
+                         initial_wait, bucketize_wait+BUCKETIZE_WAIT_INCREASE)
 
 
 def Solve(problem, detail):
