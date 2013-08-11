@@ -668,9 +668,16 @@ int main(int argc, char* argv[]) {
   std::vector<uint64_t> refinement_arguments;
   std::vector<uint64_t> refinement_expecteds;
 
+  size_t tfold_position = 0;
   for (std::string line; std::getline(std::cin, line); ) {
     // READ REQUEST!
-    CHECK_EQ("request0", line);
+    CHECK_EQ("request1", line);
+    CHECK(std::getline(std::cin, line));
+    if (line == "0") {
+      LOG(INFO) << "Net Problem!";
+      tfold_position = 0;
+    }
+
     // timeout_sec
     CHECK(std::getline(std::cin, line));
     timeout_sec = strtoull(line.c_str(), NULL, 0);
@@ -697,7 +704,7 @@ int main(int argc, char* argv[]) {
     CHECK(std::getline(std::cin, line));
     std::srand(strtoull(line.c_str(), NULL, 0));
 
-    if (op_type_set & OpType::TFOLD) {
+    if ((op_type_set & OpType::TFOLD) && tfold_position == 0) {
       std::vector<uint64_t> arguments2 = arguments;
       arguments2.insert(arguments2.end(), refinement_arguments.begin(), refinement_arguments.end());
       std::vector<uint64_t> expecteds2 = expecteds;
@@ -739,6 +746,7 @@ int main(int argc, char* argv[]) {
       // Fallback to the normal search with FOLD operation.
       op_type_set = (op_type_set & ~OpType::TFOLD) | OpType::FOLD;
     }
+    tfold_position = 1;
 
     if (!refinement_arguments.empty()) {
       std::vector<uint64_t> condition_arguments;
