@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <map>
 #include <string>
 #include <vector>
@@ -324,6 +325,8 @@ std::shared_ptr<Expr> Cardinal(const Key& arguments,
   for (int size = 2; size <= max_size; ++size) {
     LOG(INFO) << "Size = " << size;
 
+    // Randomize operator order.
+    std::random_shuffle(unary_op_types.begin(), unary_op_types.end());
     for (const auto& pair : expr_dicts[size - 1]) {
       for (OpType type : unary_op_types) {
         Key new_value = EvalUnaryImmediate(type, pair.first);
@@ -335,6 +338,8 @@ std::shared_ptr<Expr> Cardinal(const Key& arguments,
     }
     LOG(INFO) << "  Dict[" << size << "] = " << expr_dicts[size].size() << " : Unary done";
 
+    // Randomize operator order.
+    std::random_shuffle(binary_op_types.begin(), binary_op_types.end());
     for (int arg1_size = 1; arg1_size < size - 1; ++arg1_size) {
       int arg2_size = size - 1 - arg1_size;
       for (const auto& pair1 : expr_dicts[arg1_size]) {
@@ -462,6 +467,9 @@ int main(int argc, char* argv[]) {
   google::InitGoogleLogging(argv[0]);
   google::ParseCommandLineFlags(&argc, &argv, true);
   std::ios::sync_with_stdio(false);
+
+  // Set random seed.
+  std::srand(178);
 
   std::vector<uint64_t> arguments = ParseNumberSet(FLAGS_argument);
   std::vector<uint64_t> expecteds = ParseNumberSet(FLAGS_expected);
