@@ -1,5 +1,5 @@
-#ifndef YUJIO_H_
-#define YUJIO_H_
+#ifndef EUGEO_H_
+#define EUGEO_H_
 
 // Expression lister for Alice.
 //
@@ -109,4 +109,4 @@ uint64_t EvalFoldBody(const Expr& body, uint64_t x, uint64_t value, uint64_t acc
 
 }  // namespace icpfc
 
-#endif  // YUJIO_H_
+#endif  // EUGEO_H_

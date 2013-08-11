@@ -8,7 +8,7 @@
 #include <glog/logging.h>
 
 #include "expr.h"
-#include "yujio.h"
+#include "eugeo.h"
 
 using namespace icfpc;
 
@@ -646,8 +646,7 @@ std::shared_ptr<Expr> Cardinal(const std::vector<uint64_t>& arguments,
 }
 
 
-void InitializeYujio() {
-  // TODO(kinaba): Initialize Yujio
+void InitializeEugeo() {
   ListFoldBody(kListBodyMax);
 }
 
@@ -657,7 +656,7 @@ int main(int argc, char* argv[]) {
   google::ParseCommandLineFlags(&argc, &argv, true);
   std::ios::sync_with_stdio(false);
 
-  InitializeYujio();
+  InitializeEugeo();
   std::cout << "ready" << std::endl;
 
   int timeout_sec;
