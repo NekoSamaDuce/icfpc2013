@@ -1,4 +1,8 @@
-"""Asuna the Lightning: Our Hope."""
+"""Asuna the Lightning: Our Hope.
+
+Example:
+./python.sh -m frontend.asuna --cardinal_solver=solver/cardinal --mode=train --size=10 --operators= --train_count=3
+"""
 
 import logging
 import os
