@@ -7,6 +7,7 @@ Example:
 
 import logging
 import os
+import random
 import subprocess
 import sys
 import time
@@ -221,8 +222,13 @@ def main():
           for t in ok_as_then:
             for e in ok_as_else:
               cand.append((c, t, e))
+
     logging.info("Candidate size: %d", len(cand))
-    
+    try_counter_example_limit = 10000
+    if len(cand) > try_counter_example_limit:
+      cand = random.sample(cand, try_counter_example_limit)
+      logging.info("Reduced candidate size: %d", len(cand))
+
     programs = [ConstructProgram(p) for p in cand]
     BruteForceGuessOrDie(problem, programs)
 
