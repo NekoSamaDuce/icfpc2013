@@ -128,8 +128,8 @@ BUCKETIZE_WAIT_INCREASE = 5
 
 
 def SolveInternal(problem, random_io_pairs, alice, detail,
+                  start_time,
                   initial_wait=INITIAL_WAIT, bucketize_wait=BUCKETIZE_WAIT_INIT):
-  start_time = time.time()
   then_argument = []
   then_expected = []
   first_request = True
@@ -182,6 +182,7 @@ def SolveInternal(problem, random_io_pairs, alice, detail,
       example = Guess(problem, program, detail)
       if not example:
         return SolveInternal(problem, random_io_pairs, alice, detail,
+                             start_time,
                              initial_wait, bucketize_wait)
       continue
 
@@ -201,11 +202,13 @@ def SolveInternal(problem, random_io_pairs, alice, detail,
       example = Guess(problem, program, detail)
       if not example:
         return SolveInternal(problem, random_io_pairs, alice, detail,
+                             start_time,
                              initial_wait, bucketize_wait)
       continue
 
     # docchi mo dame datta... orzorz
     return SolveInternal(problem, random_io_pairs, alice, detail,
+                         start_time,
                          initial_wait, bucketize_wait+BUCKETIZE_WAIT_INCREASE)
 
 
@@ -229,7 +232,8 @@ def Solve(problem, alice, detail):
   detail.flush()
 
   try:
-    SolveInternal(problem, random_io_pairs, alice, detail)
+    start_time = time.time()
+    SolveInternal(problem, random_io_pairs, alice, detail, start_time)
   except api.Solved:
     logging.info('')
     logging.info(u'*\u30fb\u309c\uff9f\uff65*:.\uff61. '
