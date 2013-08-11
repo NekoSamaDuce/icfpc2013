@@ -1,7 +1,7 @@
 """Asuna the Lightning: Our Hope.
 
 Example:
-./python.sh -m frontend.asuna --cardinal_solver=solver/cardinal --mode=train --size=10 --operators= --train_count=3 --train_exclude_fold
+./python.sh -m frontend.asuna --cardinal_solver=solver/cardinal --mode=train --size=10 --operators= --train_count=3 --train_exclude_fold --detail_log_dir=details
 """
 
 import logging
@@ -35,6 +35,11 @@ gflags.DEFINE_integer(
     'initial_arguments', 3,
     'Number of arguments initially given to cardinal.')
 
+gflags.DEFINE_string(
+    'detail_log_dir', None,
+    'Problem details for post-mortem are logged to this directory.')
+gflags.MarkFlagAsRequired('detail_log_dir')
+
 
 def RunCardinalSolver(problem, argument, expected):
   logging.info('Running Cardinal System with %d arguments...', len(argument))
@@ -49,12 +54,22 @@ def RunCardinalSolver(problem, argument, expected):
   return output.strip()
 
 
-def Solve(problem):
+def Solve(problem, detail):
+  print >>detail, problem
+  print >>detail, ''
+  detail.flush()
+
   logging.info('Issueing /eval...')
 
   arguments = consts.INABA_KEY
   outputs = api.Eval(problem.id, arguments)
   known_io_pairs = zip(arguments, outputs)
+
+  print >>detail, '=== First Eval ==='
+  print >>detail, 'arguments:', ','.join(['0x%016x' % x for x in arguments])
+  print >>detail, 'outputs:', ','.join(['0x%016x' % x for x in outputs])
+  print >>detail, ''
+  detail.flush()
 
   cardinal_argument = []
   cardinal_expected = []
@@ -64,8 +79,17 @@ def Solve(problem):
     cardinal_expected.append(o)
 
   while True:
+    print >>detail, '=== Cardinal Run ==='
+    print >>detail, 'arguments:', ','.join(['0x%016x' % x for x in cardinal_argument])
+    print >>detail, 'expected:', ','.join(['0x%016x' % x for x in cardinal_expected])
+    detail.flush()
+
     program = RunCardinalSolver(problem, cardinal_argument, cardinal_expected)
+
     logging.info('=== %s', program)
+    print >>detail, 'program:', program
+    detail.flush()
+
     try:
       example = api.Guess(problem.id, program)
     except api.Solved:
@@ -74,17 +98,25 @@ def Solve(problem):
                    u'SOLVED!'
                    u' .\uff61.:*\uff65\u309c\uff9f\uff65*:')
       logging.info('')
+      print >>detail, '=> success.'
+      detail.flush()
       return
     if example:
       logging.info('rejected. argument=0x%016x, expected=0x%016x, actual=0x%016x',
                    example.argument, example.expected, example.actual)
+      print >>detail, '=> rejected. argument=0x%016x, expected=0x%016x, actual=0x%016x' % (
+          example.argument, example.expected, example.actual)
+      detail.flush()
       cardinal_argument.append(example.argument)
       cardinal_expected.append(example.expected)
     else:
       logging.info('rejected, but could not get a counterexample.')
+      print >>detail, '=> rejected, but could not get a counterexample.'
+      detail.flush()
       i, o = known_io_pairs.pop()
       cardinal_argument.append(i)
       cardinal_expected.append(o)
+
 
 
 def main():
@@ -106,7 +138,8 @@ def main():
                  index + 1, len(problems), problem)
     logging.info('Flag to recover: --problem_id=%s --size=%d --operators=%s',
                  problem.id, problem.size, ','.join(problem.operators))
-    Solve(problem)
+    with open(os.path.join(FLAGS.detail_log_dir, '%s.txt' % problem.id), 'w') as detail:
+      Solve(problem, detail)
 
 
 if __name__ == '__main__':
