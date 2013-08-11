@@ -40,13 +40,18 @@ gflags.DEFINE_boolean(
     'Call batch_evaluate to filter candidates with counterexamples.')
 gflags.MarkFlagAsRequired('counterexample_filter')
 
+gflags.DEFINE_string(
+    'cache_dir', '',
+    'Path to cache dir')
+
 
 def RunClusterSolver(problem):
   logging.info('Running clusterer...')
   cluster_solver_output = subprocess.check_output(
       [FLAGS.cluster_solver,
        '--size=%d' % problem.size,
-       '--operators=%s' % ','.join(problem.operators)])
+       '--operators=%s' % ','.join(problem.operators),
+       '--cache_dir=%s' % FLAGS.cache_dir])
   logging.info('Finished.')
   assert cluster_solver_output.startswith('argument: ')
   lines = cluster_solver_output.splitlines()

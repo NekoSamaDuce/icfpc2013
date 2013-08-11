@@ -71,9 +71,15 @@ int main(int argc, char* argv[]) {
               FLAGS_cache_dir.c_str(),
               static_cast<int>(hash & 0xff));
       MaybeMakeDir(filename);
-      sprintf(filename, "%s/%02x/%016llx.sxp",
+      sprintf(filename, "%s/%02x/%02x",
               FLAGS_cache_dir.c_str(),
               static_cast<int>(hash & 0xff),
+              static_cast<int>((hash >> 8) & 0xff));
+      MaybeMakeDir(filename);
+      sprintf(filename, "%s/%02x/%02x/%016llx.sxp",
+              FLAGS_cache_dir.c_str(),
+              static_cast<int>(hash & 0xff),
+              static_cast<int>((hash >> 8) & 0xff),
               static_cast<unsigned long long>(hash));
       FILE* fp = fopen(filename, "a+");
       flock(fileno(fp), LOCK_EX);
