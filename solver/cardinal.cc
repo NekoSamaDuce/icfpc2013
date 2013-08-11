@@ -13,6 +13,7 @@ using namespace icfpc;
 DEFINE_string(argument, "", "");
 DEFINE_string(expected, "", "");
 DEFINE_int32(size, 30, "");
+DEFINE_int32(random_seed, 178, "");
 DEFINE_string(operators, "", "List of the operators");
 DEFINE_string(refinement_argument, "", "");
 DEFINE_string(refinement_expected, "", "");
@@ -469,7 +470,7 @@ int main(int argc, char* argv[]) {
   std::ios::sync_with_stdio(false);
 
   // Set random seed.
-  std::srand(178);
+  std::srand(FLAGS_random_seed);
 
   std::vector<uint64_t> arguments = ParseNumberSet(FLAGS_argument);
   std::vector<uint64_t> expecteds = ParseNumberSet(FLAGS_expected);
