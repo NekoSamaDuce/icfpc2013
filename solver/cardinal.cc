@@ -1,4 +1,5 @@
 #include <map>
+#include <string>
 #include <vector>
 
 #include <gflags/gflags.h>
@@ -180,10 +181,62 @@ Key EvalIfImmediate(const Key& value1, const Key& value2, const Key& value3) {
 }
 
 
+std::string MakeExpression(const std::map<Key, int>& size_dict,
+                           const std::map<Key, Back> expr_dicts[],
+                           const Key& key) {
+  auto found_size = size_dict.find(key);
+  if (found_size == size_dict.end()) {
+    LOG(ERROR) << "Not found";
+    return "";
+  }
+  auto found = expr_dicts[found_size->second].find(key);
+  switch (found->second.type) {
+  case NOT:
+    return "(not " + MakeExpression(size_dict, expr_dicts, *found->second.arg1) + ")";
+  case SHL1:
+    return "(shl1 " + MakeExpression(size_dict, expr_dicts, *found->second.arg1) + ")";
+  case SHR1:
+    return "(shr1 " + MakeExpression(size_dict, expr_dicts, *found->second.arg1) + ")";
+  case SHR4:
+    return "(shr4 " + MakeExpression(size_dict, expr_dicts, *found->second.arg1) + ")";
+  case SHR16:
+    return "(shr16 " + MakeExpression(size_dict, expr_dicts, *found->second.arg1) + ")";
+  case AND:
+    return "(and " + MakeExpression(size_dict, expr_dicts, *found->second.arg1) + " " +
+        MakeExpression(size_dict, expr_dicts, *found->second.arg2) + ")";
+  case OR:
+    return "(or " + MakeExpression(size_dict, expr_dicts, *found->second.arg1) + " " +
+        MakeExpression(size_dict, expr_dicts, *found->second.arg2) + ")";
+  case XOR:
+    return "(xor " + MakeExpression(size_dict, expr_dicts, *found->second.arg1) + " " +
+        MakeExpression(size_dict, expr_dicts, *found->second.arg2) + ")";
+  case PLUS:
+    return "(plus " + MakeExpression(size_dict, expr_dicts, *found->second.arg1) + " " +
+        MakeExpression(size_dict, expr_dicts, *found->second.arg2) + ")";
+  case IF0:
+    return "(if0 " + MakeExpression(size_dict, expr_dicts, *found->second.arg1) + " " +
+      MakeExpression(size_dict, expr_dicts, *found->second.arg2) + " " +
+      MakeExpression(size_dict, expr_dicts, *found->second.arg3) + ")";
+  case FOLD:
+    return "FOLD";
+  case TFOLD:
+    return "TFOLD";
+  case LAMBDA:
+    return "LAMBDA";
+  case CONSTANT:
+    return found->first[0] ? "1" : "0";
+  case ID:
+    return "x";
+  default:
+    LOG(FATAL) << "Unknown OpType.";
+  }
+}
+
+
 // TODO: The argument to be a vector to pass multiple arguments.
-void Cardinal(const Key& arguments,
-              const Key& expecteds,
-              int max_size, int op_type_set) {
+std::string Cardinal(const Key& arguments,
+                     const Key& expecteds,
+                     int max_size, int op_type_set) {
   for (UnaryOpExpr::Type type : ALL_UNARY_OP_TYPES) {
     if ((op_type_set & UnaryOpExpr::ToOpType(type)) == 0) {
       continue;
@@ -215,11 +268,11 @@ void Cardinal(const Key& arguments,
   }
   expr_dicts[1].insert(std::make_pair(zeroes,
                                       Back { OpType::CONSTANT }));
-  size_dict.insert(std::make_pair(Key {0, 0, 0}, 1));
+  size_dict.insert(std::make_pair(zeroes, 1));
   // unstable.insert(make_pair([1, 1, 1], ConstantExpr::CreateOne()));
   expr_dicts[1].insert(std::make_pair(ones,
                                       Back { OpType::CONSTANT }));
-  size_dict.insert(std::make_pair(Key {1, 1, 1}, 1));
+  size_dict.insert(std::make_pair(ones, 1));
   // unstable.insert(make_pair([a0, a1, a2], IdExpr::CreateX()));
   expr_dicts[1].insert(std::make_pair(arguments,
                                       Back { OpType::ID })); // Assumes ID = X
@@ -279,9 +332,11 @@ void Cardinal(const Key& arguments,
     }
   }
 
+#if 0
   std::vector<std::pair<int, Key> > stack;
   int depth = 0;
   Key value = expecteds;
+
   while (true) {
     std::map<Key, int>::const_iterator found_size = size_dict.find(value);
     if (found_size == size_dict.end()) {
@@ -314,11 +369,20 @@ void Cardinal(const Key& arguments,
       ++depth;
       value = *found->second.arg1;
       stack.push_back(std::make_pair(depth, *found->second.arg2));
-    } else {
-      value = *found->second.arg1;
+    } else if (found->second.type == IF0) {
       ++depth;
+      value = *found->second.arg1;
+      stack.push_back(std::make_pair(depth, *found->second.arg2));
+      stack.push_back(std::make_pair(depth, *found->second.arg3));
+    } else { // Unary
+      ++depth;
+      value = *found->second.arg1;
     }
   }
+#endif
+
+  std::string expr = "(lambda (x) " + MakeExpression(size_dict, expr_dicts, expecteds) + ")";
+  return expr;
 }
 
 
@@ -332,8 +396,8 @@ int main(int argc, char* argv[]) {
   std::vector<uint64_t> expecteds = ParseNumberSet(FLAGS_expected);
   int op_type_set = ParseOpTypeSet(FLAGS_operators);
 
-  Cardinal(arguments, expecteds, FLAGS_size, op_type_set);
-  // std::cout << *expr << std::endl;
+  std::string expr = Cardinal(arguments, expecteds, FLAGS_size, op_type_set);
+  std::cout << expr << std::endl;
 
   return 0;
 }
