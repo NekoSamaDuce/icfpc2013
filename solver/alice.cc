@@ -6,6 +6,7 @@
 #include <glog/logging.h>
 
 #include "expr.h"
+#include "yujio.h"
 
 using namespace icfpc;
 

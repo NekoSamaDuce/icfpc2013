@@ -32,7 +32,7 @@ synthesis: synthesis.cc expr.h simplify.h
 cardinal: cardinal.cc expr.h
 	$(CXX) $< $(CXXFLAGS) -o $@
 
-alice: alice.cc expr.h
+alice: alice.cc expr.h yujio.h expr_list.h
 	$(CXX) $< $(CXXFLAGS) -o $@
 
 unittest: unittest.cc test_eval.cc libgtest.a expr.h expr_list.h parser.h
