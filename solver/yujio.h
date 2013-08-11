@@ -7,7 +7,7 @@
 //     Returns |table|, where table[s] is vector<shared_ptr<Expr>> of size |s| bodies.
 //     E.g., table[3] = {(or y z), (and y z), ...}
 //
-// EvalFoldBody(e, value, init):
+// EvalFoldBody(e, x, value, init):
 //     Evaluates e with the given arguments.
 //
 
@@ -77,9 +77,9 @@ std::vector<std::vector<std::shared_ptr<Expr> > > PreComputeTable(std::size_t de
 
     filtered_table.emplace_back();
     for (auto& e: es) {
-      if (!e->has_y() && !e->has_z()) continue;  // Constant is always useless.
-      //if (!e->has_y()) continue;  // No y may useless: BODY[z/INIT] has same effect w/o fold.
-      //if (!e->has_z()) continue;  // No z may be: BODY[y/(VALUE>>16>>16>>16>>4>>4)]
+      if (!e->has_x() && !e->has_y() && !e->has_z()) continue;  // Constant is always useless.
+      if (!e->has_y()) continue;  // No y may useless: BODY[z/INIT] has same effect w/o fold.
+      if (!e->has_z()) continue;  // No z may be: BODY[y/(VALUE>>16>>16>>16>>4>>4)]
       filtered_table.back().push_back(e);
     }
 
@@ -99,9 +99,9 @@ std::vector<std::vector<std::shared_ptr<Expr> > >& ListFoldBody(size_t max_size 
   return table;
 }
 
-uint64_t EvalFoldBody(const Expr& body, uint64_t value, uint64_t acc) {
+uint64_t EvalFoldBody(const Expr& body, uint64_t x, uint64_t value, uint64_t acc) {
   for (size_t i = 0; i < 8; ++i, value >>= 8) {
-    Env env = {0, (value & 0xFF), acc};
+    Env env = {x, (value & 0xFF), acc};
     acc = body.Eval(env);
   }
   return acc;
