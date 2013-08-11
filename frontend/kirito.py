@@ -43,6 +43,10 @@ gflags.DEFINE_boolean(
     'keep_going', False,
     'Keep going even on expiration')
 
+gflags.DEFINE_integer(
+    'time_limit_sec', None,
+    'Time limit in seconds')
+
 
 class Alice(object):
   def __init__(self):
@@ -125,12 +129,15 @@ BUCKETIZE_WAIT_INCREASE = 5
 
 def SolveInternal(problem, random_io_pairs, alice, detail,
                   initial_wait=INITIAL_WAIT, bucketize_wait=BUCKETIZE_WAIT_INIT):
+  start_time = time.time()
   then_argument = []
   then_expected = []
   first_request = True
 
   trial = 0
   while True:
+    if time_limit_sec is not None and time.time() - start_time > FLAGS.time_limit_sec:
+      raise api.Expired('artificial time limit')
     # Sample 3 I/O randomly
     else_argument = []
     else_expected = []
@@ -157,6 +164,9 @@ def SolveInternal(problem, random_io_pairs, alice, detail,
   buckets = [(else_argument, else_expected), (then_argument, then_expected)]
 
   while True:
+    if time_limit_sec is not None and time.time() - start_time > FLAGS.time_limit_sec:
+      raise api.Expired('artificial time limit')
+
     # example docchi ni ireru???
     buckets.sort(key=lambda (a, e): -len(a))
 
