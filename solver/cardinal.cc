@@ -86,75 +86,56 @@ void Cardinal(uint64_t argument, uint64_t expected, int max_size, int op_type_se
     BINARY_OP_TYPES.push_back(type);
   }
 
+  // { Output => Minimum Size }
+  std::map<uint64_t, int> size_dict;
+
   // TODO: To be std::map<std::vector<uint64_t>, std::shared_ptr<Expr> > dict;
   // [output when |x0| is given, output when |x1| is given, ...] => backtrack
-  // { Output => ( Representative Expression, Size ) }
-  std::map<uint64_t, std::pair<std::shared_ptr<Expr>, int> > stable;
-  std::map<uint64_t, std::pair<std::shared_ptr<Expr>, int> > unstable;
+  // { Size => { Output => Expr } }
+  std::map<uint64_t, std::shared_ptr<Expr> > expr_dicts[30];
 
   // unstable.insert(make_pair([0, 0, 0], ConstantExpr::CreateZero()));
-  unstable.insert(std::make_pair(0, std::make_pair(ConstantExpr::CreateZero(), 1)));
+  expr_dicts[1].insert(std::make_pair(0, ConstantExpr::CreateZero()));
+  size_dict.insert(std::make_pair(0, 1));
   // unstable.insert(make_pair([1, 1, 1], ConstantExpr::CreateOne()));
-  unstable.insert(std::make_pair(1, std::make_pair(ConstantExpr::CreateOne(), 1)));
+  expr_dicts[1].insert(std::make_pair(1, ConstantExpr::CreateOne()));
+  size_dict.insert(std::make_pair(1, 1));
   // unstable.insert(make_pair([a0, a1, a2], IdExpr::CreateX()));
-  unstable.insert(std::make_pair(argument, std::make_pair(IdExpr::CreateX(), 1)));
+  expr_dicts[1].insert(std::make_pair(argument, IdExpr::CreateX()));
+  size_dict.insert(std::make_pair(argument, 1));
 
-  while (!unstable.empty()) {
-    std::map<uint64_t, std::pair<std::shared_ptr<Expr>, int> > fresh;
-
-    for (const auto& pair : unstable) {
+  for (int size = 2; size <= max_size; ++size) {
+    for (const auto& pair : expr_dicts[size - 1]) {
       for (UnaryOpExpr::Type type : UNARY_OP_TYPES) {
         uint64_t new_value = EvalUnaryImmediate(type, pair.first);
-        if (max_size >= pair.second.second + 1 &&
-            stable.find(new_value) == stable.end() &&
-            unstable.find(new_value) == unstable.end()) {
-          fresh.insert(make_pair(new_value,
-                                 std::make_pair(UnaryOpExpr::Create(type,
-                                                                    ConstantExpr::Create(pair.first)),
-                                                pair.second.second + 1)));
+        if (size_dict.insert(std::make_pair(new_value, size)).second) { // If new
+          expr_dicts[size].insert(std::make_pair(new_value,
+                                                 UnaryOpExpr::Create(type,
+                                                                     ConstantExpr::Create(pair.first))));
         }
       }
+    }
 
-      for (BinaryOpExpr::Type type : BINARY_OP_TYPES) {
-        for (const auto& pair2 : unstable) {
-          uint64_t new_value = EvalBinaryImmediate(type,
-                                                   pair.first, pair2.first);
-          if (max_size >= pair.second.second + pair2.second.second + 1 &&
-              stable.find(new_value) == stable.end() &&
-              unstable.find(new_value) == unstable.end()) {
-            fresh.insert(std::make_pair(new_value,
-                                        std::make_pair(BinaryOpExpr::Create(type,
-                                                                            ConstantExpr::Create(pair.first),
-                                                                            ConstantExpr::Create(pair2.first)),
-                                                       pair.second.second + pair2.second.second + 1)));
-          }
-        }
-
-        for (const auto& pair2 : stable) {
-          uint64_t new_value = EvalBinaryImmediate(type,
-                                                   pair.first, pair2.first);
-          if (max_size >= pair.second.second + pair2.second.second + 1 &&
-              stable.find(new_value) == stable.end() &&
-              unstable.find(new_value) == unstable.end()) {
-            fresh.insert(std::make_pair(new_value,
-                                        std::make_pair(BinaryOpExpr::Create(type,
-                                                                            ConstantExpr::Create(pair.first),
-                                                                            ConstantExpr::Create(pair2.first)),
-                                                       pair.second.second + pair2.second.second + 1)));
+    for (int arg1_size = 1; arg1_size < size - 1; ++arg1_size) {
+      int arg2_size = size - 1 - arg1_size;
+      for (const auto& pair1 : expr_dicts[arg1_size]) {
+        for (const auto& pair2 : expr_dicts[arg2_size]) {
+          for (BinaryOpExpr::Type type : BINARY_OP_TYPES) {
+            uint64_t new_value = EvalBinaryImmediate(type, pair1.first, pair2.first);
+            if (size_dict.insert(std::make_pair(new_value, size)).second) {
+              expr_dicts[size].insert(std::make_pair(new_value,
+                                                     BinaryOpExpr::Create(type,
+                                                                          ConstantExpr::Create(pair1.first),
+                                                                          ConstantExpr::Create(pair2.first))));
+            }
           }
         }
       }
     }
+
     // TODO: Find it earlier.
-    std::map<uint64_t, std::pair<std::shared_ptr<Expr>, int> >::const_iterator found =
-        fresh.find(expected);
-    stable.insert(unstable.begin(), unstable.end());
-    if (found == fresh.end()) {
-      // TODO: Speed-up.
-      unstable.clear();
-      unstable.insert(fresh.begin(), fresh.end());
-    } else {
-      stable.insert(fresh.begin(), fresh.end());
+    std::map<uint64_t, std::shared_ptr<Expr> >:: iterator found = expr_dicts[size].find(expected);
+    if (found != expr_dicts[size].end()) {
       break;
     }
   }
@@ -163,21 +144,23 @@ void Cardinal(uint64_t argument, uint64_t expected, int max_size, int op_type_se
   int depth = 0;
   uint64_t value = expected;
   while (true) {
-    std::map<uint64_t, std::pair<std::shared_ptr<Expr>, int> >::const_iterator found = stable.find(value);
-    if (found == stable.end()) {
+    std::map<uint64_t, int>::const_iterator found_size = size_dict.find(value);
+    if (found_size == size_dict.end()) {
       std::cout << "Not found." << std::endl;
       break;
     }
+    int size = found_size->second;
+    std::map<uint64_t, std::shared_ptr<Expr> >::iterator found = expr_dicts[size].find(value);
 
     for (int i = 0; i < depth; ++i) {
       std::cout << " ";
     }
     std::cout << found->first << " <== "
-              << *found->second.first << " [size="
-              << found->second.second << "]" << std::endl;
+              << *found->second << " [size="
+              << size << "]" << std::endl;
 
-    if (found->second.first->op_type() == CONSTANT ||
-        found->second.first->op_type() == ID) {
+    if (found->second->op_type() == CONSTANT ||
+        found->second->op_type() == ID) {
       if (stack.empty()) {
         break;
       }
@@ -185,19 +168,19 @@ void Cardinal(uint64_t argument, uint64_t expected, int max_size, int op_type_se
       stack.pop_back();
       depth = popped.first;
       value = popped.second;
-    } else if (found->second.first->op_type() == AND ||
-               found->second.first->op_type() == OR ||
-               found->second.first->op_type() == XOR ||
-               found->second.first->op_type() == PLUS) {
-      value = std::static_pointer_cast<ConstantExpr>(
-          std::static_pointer_cast<BinaryOpExpr>(found->second.first)->arg1())->value();
+    } else if (found->second->op_type() == AND ||
+               found->second->op_type() == OR ||
+               found->second->op_type() == XOR ||
+               found->second->op_type() == PLUS) {
       ++depth;
+      value = std::static_pointer_cast<ConstantExpr>(
+          std::static_pointer_cast<BinaryOpExpr>(found->second)->arg1())->value();
       uint64_t value2 = std::static_pointer_cast<ConstantExpr>(
-          std::static_pointer_cast<BinaryOpExpr>(found->second.first)->arg2())->value();
+          std::static_pointer_cast<BinaryOpExpr>(found->second)->arg2())->value();
       stack.push_back(std::make_pair(depth, value2));
     } else {
       value = std::static_pointer_cast<ConstantExpr>(
-           std::static_pointer_cast<UnaryOpExpr>(found->second.first)->arg())->value();
+           std::static_pointer_cast<UnaryOpExpr>(found->second)->arg())->value();
       ++depth;
     }
   }
