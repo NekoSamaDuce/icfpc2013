@@ -34,15 +34,19 @@ std::vector<uint64_t> CreateKey() {
 std::map<std::vector<uint64_t>, std::vector<std::shared_ptr<Expr> > >
 CreateCluster(const std::vector<uint64_t>& input,
               const std::vector<std::shared_ptr<Expr> >& expr_list) {
-  std::map<std::vector<uint64_t>, std::vector<std::shared_ptr<Expr> > > result;
-  for (std::shared_ptr<Expr> expr : expr_list) {
-    std::vector<uint64_t> key;
-    key.reserve(256);
-    for (uint64_t v : input) {
-      key.push_back(Eval(*expr, v));
+  std::vector<std::vector<uint64_t> > keys(expr_list.size(), std::vector<uint64_t>(input.size()));
+  for (size_t i = 0; i < input.size(); ++i) {
+    uint64_t x = input[i];
+    for (size_t k = 0; k < expr_list.size(); ++k) {
+      auto& e = expr_list[k];
+      uint64_t y = Eval(*e, x);
+      keys[k][i] = y;
     }
-    result[key].push_back(expr);
   }
+
+  std::map<std::vector<uint64_t>, std::vector<std::shared_ptr<Expr> > > result;
+  for (size_t k = 0; k < expr_list.size(); ++k)
+    result[keys[k]].push_back(expr_list[k]);
   return result;
 }
 
