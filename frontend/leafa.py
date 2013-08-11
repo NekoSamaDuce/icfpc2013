@@ -2,7 +2,7 @@
 
 Example:
 ./python.sh -m frontend.leafa --cluster_solver=solver/simplify_main --batch_evaluate_solver=solver/batch_evaluate --mode=train --size=3 --operators= --max_cluster_size=20 --counterexample_filter=false --max_component_size=8
-./python.sh -m frontend.leafa --cluster_solver=solver/simplify_main --batch_evaluate_solver=solver/batch_evaluate --mode=serious --problemset_file=data/train_small.tsv --problem_id=xop6dUzEtUBAprA0DGVwcAvB --max_cluster_size=20 --counterexample_filter=false --max_component_size=8
+./python.sh -m frontend.leafa --cluster_solver=solver/simplify_main --batch_evaluate_solver=solver/batch_evaluate --mode=serious --problemset_file=data/train_small.tsv --problem_id=xop6dUzEtUBAprA0DGVwcAvB --counterexample_filter=false --max_component_size=8
 """
 
 import logging
@@ -29,16 +29,9 @@ gflags.DEFINE_string(
     'Path to batch evaluate solver binary.')
 gflags.MarkFlagAsRequired('batch_evaluate_solver')
 
-gflags.DEFINE_integer(
-    'max_cluster_size', None,
-    'Maximum size of a cluster allowed to proceed before starting to solve '
-    'a problem. Specify 0 for no threshold.')
-gflags.MarkFlagAsRequired('max_cluster_size')
-
 gflags.DEFINE_boolean(
-    'counterexample_filter', None,
+    'counterexample_filter', True,
     'Call batch_evaluate to filter candidates with counterexamples.')
-gflags.MarkFlagAsRequired('counterexample_filter')
 
 gflags.DEFINE_integer(
     'max_component_size', None,
@@ -163,11 +156,6 @@ def main():
     logging.info('Candidate clusters: %d', len(clusters))
     logging.info('Cluster sizes: %s', ', '.join(map(str, cluster_sizes_decreasing)))
 
-    if FLAGS.max_cluster_size > 0 and cluster_sizes_decreasing[0] > FLAGS.max_cluster_size:
-      logging.error('Maximum cluster size was above threshold (%d)', FLAGS.max_cluster_size)
-      logging.error('Stop.')
-      sys.exit(1)
-
     logging.info('Issueing /eval...')
     outputs = api.Eval(problem.id, arguments)
 
@@ -186,19 +174,44 @@ def main():
 
     fullbits = (1 << len(outputs)) - 1
     cand = []
-    for (c_bv, c_progs) in c_map.items():
-      ok_as_then = []
-      ok_as_else = []
-      c_bv_inv = ~c_bv & fullbits
-      for (t_bv, t_progs) in t_map.items():
-        if (c_bv & t_bv) == c_bv:
-          ok_as_then.extend(t_progs)
-        if (c_bv_inv & t_bv) == c_bv_inv:
-          ok_as_else.extend(t_progs)
-      for c in c_progs:
-        for t in ok_as_then:
-          for e in ok_as_else:
-            cand.append((c, t, e))
+
+    high_t_map = dict()
+    for (t_bv, t_progs) in t_map.items():
+      bitnum = bin(t_bv).count('1')
+      if bitnum >= (len(outputs)+1)/2:
+        high_t_map[t_bv] = t_progs
+
+    if len(high_t_map) < 500:
+      # First filter by high_bit_candidates
+      for (t_bv, t_progs) in high_t_map.items(): # find high bitters
+        for (e_bv, e_progs) in t_map.items():
+          if (t_bv | e_bv) == fullbits: # must cover all cases
+            for (c_bv, c_progs) in c_map.items():
+              c_bv_inv = ~c_bv & fullbits
+              if (c_bv & t_bv) == c_bv and (c_bv_inv & e_bv) == c_bv_inv:  # c,t,e
+                for c in c_progs:
+                  for t in t_progs:
+                    for e in e_progs:
+                      cand.append((c, t, e))
+              if (c_bv & e_bv) == c_bv and (c_bv_inv & t_bv) == c_bv_inv:  # c,e,t
+                for c in c_progs:
+                  for e in e_progs:
+                    for t in t_progs:
+                      cand.append((c, e, t))
+    else:
+      for (c_bv, c_progs) in c_map.items():
+        ok_as_then = []
+        ok_as_else = []
+        c_bv_inv = ~c_bv & fullbits
+        for (t_bv, t_progs) in t_map.items():
+          if (c_bv & t_bv) == c_bv:
+            ok_as_then.extend(t_progs)
+          if (c_bv_inv & t_bv) == c_bv_inv:
+            ok_as_else.extend(t_progs)
+        for c in c_progs:
+          for t in ok_as_then:
+            for e in ok_as_else:
+              cand.append((c, t, e))
     logging.info("Candidate size: %d", len(cand))
     
     programs = [ConstructProgram(p) for p in cand]
