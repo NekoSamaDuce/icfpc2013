@@ -8,7 +8,6 @@ setup(
     version=str(int(time.time())),
     packages=['frontend', 'sandbox', 'solver'],
     install_requires=[
-        'pymongo',
         'python-gflags',
         'requests',
         ])
