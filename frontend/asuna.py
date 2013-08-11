@@ -1,7 +1,7 @@
 """Asuna the Lightning: Our Hope.
 
 Example:
-./python.sh -m frontend.asuna --cardinal_solver=solver/cardinal --mode=train --size=10 --operators= --train_count=3
+./python.sh -m frontend.asuna --cardinal_solver=solver/cardinal --mode=train --size=10 --operators= --train_count=3 --train_exclude_fold
 """
 
 import logging
