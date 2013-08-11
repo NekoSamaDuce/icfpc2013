@@ -8,9 +8,10 @@
 
 using namespace icfpc;
 
+
 DEFINE_uint64(argument, 0, "");
 DEFINE_uint64(expected, 0, "");
-DEFINE_int32(size, 0, "");
+DEFINE_int32(size, 30, "");
 DEFINE_string(operators, "", "List of the operators");
 
 
@@ -39,13 +40,13 @@ uint64_t EvalUnaryImmediate(UnaryOpExpr::Type type, uint64_t value) {
   case UnaryOpExpr::Type::NOT:
     return ~value;
   case UnaryOpExpr::Type::SHL1:
-    return value >> 1;
-  case UnaryOpExpr::Type::SHR1:
     return value << 1;
+  case UnaryOpExpr::Type::SHR1:
+    return value >> 1;
   case UnaryOpExpr::Type::SHR4:
-    return value << 4;
+    return value >> 4;
   case UnaryOpExpr::Type::SHR16:
-    return value << 16;
+    return value >> 16;
   default:
     return 0xdeadbeef;
   }
@@ -68,9 +69,9 @@ uint64_t EvalBinaryImmediate(BinaryOpExpr::Type type,
   }
 }
 
+
 // TODO: The argument to be a vector to pass multiple arguments.
-std::shared_ptr<Expr> Cardinal(
-    uint64_t argument, uint64_t expected, int max_size, int op_type_set) {
+void Cardinal(uint64_t argument, uint64_t expected, int max_size, int op_type_set) {
   for (UnaryOpExpr::Type type : ALL_UNARY_OP_TYPES) {
     if ((op_type_set & UnaryOpExpr::ToOpType(type)) == 0) {
       continue;
@@ -87,26 +88,30 @@ std::shared_ptr<Expr> Cardinal(
 
   // TODO: To be std::map<std::vector<uint64_t>, std::shared_ptr<Expr> > dict;
   // [output when |x0| is given, output when |x1| is given, ...] => backtrack
-  std::map<uint64_t, std::shared_ptr<Expr> > stable;
-  std::map<uint64_t, std::shared_ptr<Expr> > unstable;
+  // { Output => ( Representative Expression, Size ) }
+  std::map<uint64_t, std::pair<std::shared_ptr<Expr>, int> > stable;
+  std::map<uint64_t, std::pair<std::shared_ptr<Expr>, int> > unstable;
 
   // unstable.insert(make_pair([0, 0, 0], ConstantExpr::CreateZero()));
-  unstable.insert(make_pair(0, ConstantExpr::CreateZero()));
+  unstable.insert(std::make_pair(0, std::make_pair(ConstantExpr::CreateZero(), 1)));
   // unstable.insert(make_pair([1, 1, 1], ConstantExpr::CreateOne()));
-  unstable.insert(make_pair(1, ConstantExpr::CreateOne()));
+  unstable.insert(std::make_pair(1, std::make_pair(ConstantExpr::CreateOne(), 1)));
   // unstable.insert(make_pair([a0, a1, a2], IdExpr::CreateX()));
-  unstable.insert(make_pair(argument, IdExpr::CreateX()));
+  unstable.insert(std::make_pair(argument, std::make_pair(IdExpr::CreateX(), 1)));
 
   while (!unstable.empty()) {
-    std::map<uint64_t, std::shared_ptr<Expr> > fresh;
+    std::map<uint64_t, std::pair<std::shared_ptr<Expr>, int> > fresh;
 
     for (const auto& pair : unstable) {
       for (UnaryOpExpr::Type type : UNARY_OP_TYPES) {
         uint64_t new_value = EvalUnaryImmediate(type, pair.first);
-        if (stable.find(new_value) == stable.end() &&
+        if (max_size >= pair.second.second + 1 &&
+            stable.find(new_value) == stable.end() &&
             unstable.find(new_value) == unstable.end()) {
-          fresh.insert(make_pair(new_value, UnaryOpExpr::Create(type,
-              ConstantExpr::Create(pair.first))));
+          fresh.insert(make_pair(new_value,
+                                 std::make_pair(UnaryOpExpr::Create(type,
+                                                                    ConstantExpr::Create(pair.first)),
+                                                pair.second.second + 1)));
         }
       }
 
@@ -114,31 +119,39 @@ std::shared_ptr<Expr> Cardinal(
         for (const auto& pair2 : unstable) {
           uint64_t new_value = EvalBinaryImmediate(type,
                                                    pair.first, pair2.first);
-          if (stable.find(new_value) == stable.end() &&
+          if (max_size >= pair.second.second + pair2.second.second + 1 &&
+              stable.find(new_value) == stable.end() &&
               unstable.find(new_value) == unstable.end()) {
-            fresh.insert(make_pair(new_value, BinaryOpExpr::Create(type,
-                ConstantExpr::Create(pair.first),
-                ConstantExpr::Create(pair2.first))));
+            fresh.insert(std::make_pair(new_value,
+                                        std::make_pair(BinaryOpExpr::Create(type,
+                                                                            ConstantExpr::Create(pair.first),
+                                                                            ConstantExpr::Create(pair2.first)),
+                                                       pair.second.second + pair2.second.second + 1)));
           }
         }
 
         for (const auto& pair2 : stable) {
           uint64_t new_value = EvalBinaryImmediate(type,
                                                    pair.first, pair2.first);
-          if (stable.find(new_value) == stable.end() &&
+          if (max_size >= pair.second.second + pair2.second.second + 1 &&
+              stable.find(new_value) == stable.end() &&
               unstable.find(new_value) == unstable.end()) {
-            fresh.insert(make_pair(new_value, BinaryOpExpr::Create(type,
-                ConstantExpr::Create(pair.first),
-                ConstantExpr::Create(pair2.first))));
+            fresh.insert(std::make_pair(new_value,
+                                        std::make_pair(BinaryOpExpr::Create(type,
+                                                                            ConstantExpr::Create(pair.first),
+                                                                            ConstantExpr::Create(pair2.first)),
+                                                       pair.second.second + pair2.second.second + 1)));
           }
         }
       }
     }
     // TODO: Find it earlier.
-    std::map<uint64_t, std::shared_ptr<Expr> >::const_iterator found =
+    std::map<uint64_t, std::pair<std::shared_ptr<Expr>, int> >::const_iterator found =
         fresh.find(expected);
     stable.insert(unstable.begin(), unstable.end());
     if (found == fresh.end()) {
+      // TODO: Speed-up.
+      unstable.clear();
       unstable.insert(fresh.begin(), fresh.end());
     } else {
       stable.insert(fresh.begin(), fresh.end());
@@ -146,28 +159,50 @@ std::shared_ptr<Expr> Cardinal(
     }
   }
 
-  std::map<uint64_t, std::shared_ptr<Expr> >::const_iterator it =
-      stable.find(expected);
+  std::vector<std::pair<int, uint64_t> > stack;
+  int depth = 0;
+  uint64_t value = expected;
   while (true) {
-    std::cout << it->first << " <== " << *it->second << std::endl;
-    if (it->second->op_type() == CONSTANT ||
-        it->second->op_type() == ID) {
+    std::map<uint64_t, std::pair<std::shared_ptr<Expr>, int> >::const_iterator found = stable.find(value);
+    if (found == stable.end()) {
+      std::cout << "Not found." << std::endl;
       break;
-    } else if (it->second->op_type() == AND ||
-               it->second->op_type() == OR ||
-               it->second->op_type() == XOR ||
-               it->second->op_type() == PLUS) {
-      uint64_t value = std::static_pointer_cast<ConstantExpr>(
-           std::static_pointer_cast<BinaryOpExpr>(it->second)->arg1())->value();
-      it = stable.find(value);
+    }
+
+    for (int i = 0; i < depth; ++i) {
+      std::cout << " ";
+    }
+    std::cout << found->first << " <== "
+              << *found->second.first << " [size="
+              << found->second.second << "]" << std::endl;
+
+    if (found->second.first->op_type() == CONSTANT ||
+        found->second.first->op_type() == ID) {
+      if (stack.empty()) {
+        break;
+      }
+      std::pair<int, uint64_t> popped = stack.back();
+      stack.pop_back();
+      depth = popped.first;
+      value = popped.second;
+    } else if (found->second.first->op_type() == AND ||
+               found->second.first->op_type() == OR ||
+               found->second.first->op_type() == XOR ||
+               found->second.first->op_type() == PLUS) {
+      value = std::static_pointer_cast<ConstantExpr>(
+          std::static_pointer_cast<BinaryOpExpr>(found->second.first)->arg1())->value();
+      ++depth;
+      uint64_t value2 = std::static_pointer_cast<ConstantExpr>(
+          std::static_pointer_cast<BinaryOpExpr>(found->second.first)->arg2())->value();
+      stack.push_back(std::make_pair(depth, value2));
     } else {
-      uint64_t value = std::static_pointer_cast<ConstantExpr>(
-           std::static_pointer_cast<UnaryOpExpr>(it->second)->arg())->value();
-      it = stable.find(value);
+      value = std::static_pointer_cast<ConstantExpr>(
+           std::static_pointer_cast<UnaryOpExpr>(found->second.first)->arg())->value();
+      ++depth;
     }
   }
-  return it->second;
 }
+
 
 int main(int argc, char* argv[]) {
   google::InstallFailureSignalHandler();
@@ -177,9 +212,8 @@ int main(int argc, char* argv[]) {
 
   int op_type_set = ParseOpTypeSet(FLAGS_operators);
 
-  std::shared_ptr<Expr> expr = Cardinal(
-      FLAGS_argument, FLAGS_expected, FLAGS_size, op_type_set);
-  std::cout << *expr << std::endl;
+  Cardinal(FLAGS_argument, FLAGS_expected, FLAGS_size, op_type_set);
+  // std::cout << *expr << std::endl;
 
   return 0;
 }
