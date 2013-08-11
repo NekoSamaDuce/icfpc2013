@@ -47,6 +47,10 @@ gflags.DEFINE_boolean(
     'keep_going', False,
     'Keep going even on expiration')
 
+gflags.DEFINE_integer(
+    'time_limit_sec', 300,
+    'Time limit in seconds')
+
 
 def RunCardinalSolver(problem, argument, expected,
                       refinement_argument, refinement_expected, detail, timeout_sec):
@@ -116,12 +120,15 @@ BUCKETIZE_WAIT_INIT = 5
 BUCKETIZE_WAIT_INCREASE = 5
 
 
-def SolveInternal(problem, random_io_pairs, detail, initial_wait=INITIAL_WAIT, bucketize_wait=BUCKETIZE_WAIT_INIT):
+def SolveInternal(problem, random_io_pairs, detail, start_time, initial_wait=INITIAL_WAIT, bucketize_wait=BUCKETIZE_WAIT_INIT):
   refinement_argument = []
   refinement_expected = []
 
   trial = 0
   while True:
+    if FLAGS.time_limit_sec is not None and time.time() - start_time > FLAGS.time_limit_sec:
+      raise api.Expired('artificial time limit')
+
     # Sample 3 I/O randomly
     argument = []
     expected = []
@@ -146,6 +153,9 @@ def SolveInternal(problem, random_io_pairs, detail, initial_wait=INITIAL_WAIT, b
   buckets = [(argument, expected), (refinement_argument, refinement_expected)]
 
   while True:
+    if FLAGS.time_limit_sec is not None and time.time() - start_time > FLAGS.time_limit_sec:
+      raise api.Expired('artificial time limit')
+
     # example docchi ni ireru???
     buckets.sort(key=lambda (a, e): -len(a))
 
@@ -159,7 +169,7 @@ def SolveInternal(problem, random_io_pairs, detail, initial_wait=INITIAL_WAIT, b
     if program:
       example = Guess(problem, program, detail)
       if not example:
-        return SolveInternal(problem, random_io_pairs, detail, initial_wait, bucketize_wait)
+        return SolveInternal(problem, random_io_pairs, detail, start_time, initial_wait, bucketize_wait)
       continue
 
     # damedatta... orz
@@ -176,11 +186,11 @@ def SolveInternal(problem, random_io_pairs, detail, initial_wait=INITIAL_WAIT, b
     if program:
       example = Guess(problem, program, detail)
       if not example:
-        return SolveInternal(problem, random_io_pairs, detail, initial_wait, bucketize_wait)
+        return SolveInternal(problem, random_io_pairs, detail, start_time, initial_wait, bucketize_wait)
       continue
 
     # docchi mo dame datta... orzorz
-    return SolveInternal(problem, random_io_pairs, detail,
+    return SolveInternal(problem, random_io_pairs, detail, start_time,
                          initial_wait, bucketize_wait+BUCKETIZE_WAIT_INCREASE)
 
 
@@ -204,7 +214,7 @@ def Solve(problem, detail):
   detail.flush()
 
   try:
-    SolveInternal(problem, random_io_pairs, detail)
+    SolveInternal(problem, random_io_pairs, detail, time.time())
   except api.Solved:
     logging.info('')
     logging.info(u'*\u30fb\u309c\uff9f\uff65*:.\uff61. '

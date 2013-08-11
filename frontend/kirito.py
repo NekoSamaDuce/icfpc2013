@@ -44,7 +44,7 @@ gflags.DEFINE_boolean(
     'Keep going even on expiration')
 
 gflags.DEFINE_integer(
-    'time_limit_sec', None,
+    'time_limit_sec', 300,
     'Time limit in seconds')
 
 
