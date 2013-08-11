@@ -103,7 +103,11 @@ def Guess(problem, program, detail):
   return None
 
 
-def SolveInternal(problem, random_io_pairs, detail):
+BUCKETIZE_WAIT_INIT = 5
+BUCKETIZE_WAIT_INCREASE = 5
+
+
+def SolveInternal(problem, random_io_pairs, detail, bucketize_wait=BUCKETIZE_WAIT_INIT):
   refinement_argument = []
   refinement_expected = []
 
@@ -137,11 +141,11 @@ def SolveInternal(problem, random_io_pairs, detail):
 
     program = RunCardinalSolver(
         problem, argument, expected,
-        refinement_argument, refinement_expected, detail, 5)
+        refinement_argument, refinement_expected, detail, bucketize_wait)
     if program:
       example = Guess(problem, program, detail)
       if not example:
-        return SolveInternal(problem, random_io_pairs, detail)
+        return SolveInternal(problem, random_io_pairs, detail, bucketize_wait)
       continue
 
     # damedatta... orz
@@ -154,15 +158,16 @@ def SolveInternal(problem, random_io_pairs, detail):
 
     program = RunCardinalSolver(
         problem, argument, expected,
-        refinement_argument, refinement_expected, detail, 5)
+        refinement_argument, refinement_expected, detail, bucketize_wait)
     if program:
       example = Guess(problem, program, detail)
       if not example:
-        return SolveInternal(problem, random_io_pairs, detail)
+        return SolveInternal(problem, random_io_pairs, detail, bucketize_wait)
       continue
 
     # docchi mo dame datta... orzorz
-    return SolveInternal(problem, random_io_pairs, detail)
+    return SolveInternal(problem, random_io_pairs, detail,
+                         bucketize_wait+BUCKETIZE_WAIT_INCREASE)
 
 
 def Solve(problem, detail):
