@@ -38,7 +38,7 @@ unittest: unittest.cc test_eval.cc libgtest.a expr.h expr_list.h parser.h
 simplify_unittest: simplify_unittest.cc libgtest.a expr.h expr_list.h cluster.h simplify.h parser.h
 	$(CXX) $(filter %.cc, $+) $(filter %.a, $+) $(TEST_CXXFLAGS) -o $@
 
-genall_unittest: genall_unittest.cc libgtest.a expr.h expr_list.h expr_list_old.h
+genall_unittest: genall_unittest.cc libgtest.a expr.h expr_list.h expr_list_naive_for_testing.h
 	$(CXX) $(filter %.cc, $+) $(filter %.a, $+) $(TEST_CXXFLAGS) -o $@
 
 libgtest.a: gtest-all.o
