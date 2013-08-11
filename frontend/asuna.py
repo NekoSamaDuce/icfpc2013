@@ -217,12 +217,6 @@ def main():
     logging.info('Flag to recover: --problem_id=%s --size=%d --operators=%s',
                  problem.id, problem.size, ','.join(problem.operators))
 
-    # XXXXXXXXXXX TMPTMPTMP
-    try:
-      problem.operators.remove('bonus')
-    except:
-      pass
-
     with open(os.path.join(FLAGS.detail_log_dir, '%s.txt' % problem.id), 'w') as detail:
       Solve(problem, detail)
 
