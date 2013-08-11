@@ -44,6 +44,11 @@ gflags.DEFINE_integer(
     'Memory limit per problem in KB.')
 gflags.MarkFlagAsRequired('memory_limit_kb')
 
+gflags.DEFINE_string(
+    'cache_dir', None,
+    'Path to cache dir')
+gflags.MarkFlagAsRequired('cache_dir')
+
 
 class Problem(object):
   def __init__(self, id, size, operators, answer=None, solved=None, time_left=None):
@@ -104,23 +109,22 @@ def Worker(q):
     with open(os.devnull, 'w') as null:
       p = subprocess.Popen(
           ['/bin/bash', '-c',
-           'ulimit -t %d -v %d; eval "$@" | %s' % (
-                FLAGS.time_limit_sec, FLAGS.memory_limit_kb,
-                '%s/python.sh -m util.supercacher' % ROOT_DIR),
+           'ulimit -t %d -v %d; exec "$@"' % (
+                FLAGS.time_limit_sec, FLAGS.memory_limit_kb),
            'go',
            FLAGS.cluster_solver,
+           '--quiet',
            '--size=%d' % problem.size,
-           '--operators=%s' % ','.join(problem.operators)],
-          stdin=subprocess.PIPE,
-          stdout=subprocess.PIPE,
+           '--operators=%s' % ','.join(problem.operators),
+           '--cache_dir=%s' % FLAGS.cache_dir],
+          stdout=null,
           stderr=null)
     line = problem.ToProblemLine().replace('\t', ' ')
     logging.info('start: %s', line)
-    output = p.communicate(None)[0]
-    if output.strip() != 'ok':
+    if p.wait() != 0:
       logging.info('FAIL: %s', line)
     else:
-      logging.info('SUCCESS: %s => %s', line, ','.join(output.split()))
+      logging.info('SUCCESS: %s', line)
     q.task_done()
 
 
