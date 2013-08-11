@@ -1,6 +1,9 @@
 #ifndef ICFPC_UTIL_H_
 #define ICFPC_UTIL_H_
 
+#include <sys/stat.h>
+#include <sys/types.h>
+
 #include <cassert>
 #include <cstdint>
 #include <cstdlib>
@@ -97,6 +100,10 @@ uint64_t HashKey(const std::vector<uint64_t>& key) {
     }
   }
   return crc;
+}
+
+void MaybeMakeDir(const char* path) {
+  mkdir(path, 0755);
 }
 
 #endif  // ICFPC_UTIL_H_

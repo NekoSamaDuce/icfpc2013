@@ -17,7 +17,7 @@ genall: genall.cc expr.h expr_list.h
 cluster_main: cluster_main.cc expr.h expr_list.h cluster.h
 	$(CXX) $< $(CXXFLAGS) -o $@
 
-simplify_main: simplify_main.cc expr.h expr_list.h cluster.h simplify.h
+simplify_main: simplify_main.cc expr.h expr_list.h cluster.h simplify.h util.h
 	$(CXX) $< $(CXXFLAGS) -o $@
 
 dup_viewer: dup_viewer.cc expr.h expr_list.h cluster.h simplify.h
