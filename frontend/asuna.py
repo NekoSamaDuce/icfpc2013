@@ -6,8 +6,11 @@ Example:
 
 import logging
 import os
+import random
+import signal
 import subprocess
 import sys
+import threading
 import time
 
 import gflags
@@ -41,17 +44,54 @@ gflags.DEFINE_string(
 gflags.MarkFlagAsRequired('detail_log_dir')
 
 
-def RunCardinalSolver(problem, argument, expected):
+def RunCardinalSolver(problem, argument, expected, detail, timeout_sec):
+  print >>detail, ''
+  print >>detail, '=== Cardinal Run ==='
+  print >>detail, 'arguments:', ','.join(['0x%016x' % x for x in argument])
+  print >>detail, 'expected:', ','.join(['0x%016x' % x for x in expected])
+  detail.flush()
+
   logging.info('Running Cardinal System with %d arguments...', len(argument))
-  output = subprocess.check_output(
-      [FLAGS.cardinal_solver,
-       '--size=%d' % problem.size,
-       '--operators=%s' % ','.join(problem.operators),
-       '--argument=%s' % ','.join(map(str, argument)),
-       '--expected=%s' % ','.join(map(str, expected)),
-       ])
-  logging.info('Finished.')
+  args = [FLAGS.cardinal_solver,
+          '--size=%d' % problem.size,
+          '--operators=%s' % ','.join(problem.operators),
+          '--argument=%s' % ','.join(map(str, argument)),
+          '--expected=%s' % ','.join(map(str, expected)),
+          ]
+  proc = subprocess.Popen(args, stdout=subprocess.PIPE)
+  if timeout_sec is not None:
+    def TimeoutKiller():
+      try:
+        os.kill(proc.pid, signal.SIGXCPU)
+      except:
+        pass
+    timer = threading.Timer(timeout_sec, TimeoutKiller)
+    timer.start()
+  output = proc.communicate(None)[0]
+  if timeout_sec is not None:
+    timer.cancel()
+  if proc.returncode != 0:
+    return None
   return output.strip()
+
+
+def Guess(problem, program, detail):
+  logging.info('=== %s', program)
+  print >>detail, 'program:', program
+  detail.flush()
+
+  example = api.Guess(problem.id, program)
+  if example:
+    logging.info('rejected. argument=0x%016x, expected=0x%016x, actual=0x%016x',
+                 example.argument, example.expected, example.actual)
+    print >>detail, '=> rejected. argument=0x%016x, expected=0x%016x, actual=0x%016x' % (
+        example.argument, example.expected, example.actual)
+    detail.flush()
+    return example
+  logging.info('rejected, but could not get a counterexample.')
+  print >>detail, '=> rejected, but could not get a counterexample.'
+  detail.flush()
+  return None
 
 
 def Solve(problem, detail):
@@ -66,59 +106,41 @@ def Solve(problem, detail):
   arguments = consts.INABA_KEY
   outputs = api.Eval(problem.id, arguments)
   known_io_pairs = zip(arguments, outputs)
+  random_io_pairs = known_io_pairs[-110:]
 
   print >>detail, '=== First Eval ==='
   for argument, output in zip(arguments, outputs):
     print >>detail, '0x%016x => 0x%016x' % (argument, output)
   detail.flush()
 
-  cardinal_argument = []
-  cardinal_expected = []
-  for _ in xrange(FLAGS.initial_arguments):
-    i, o = known_io_pairs.pop()
-    cardinal_argument.append(i)
-    cardinal_expected.append(o)
-
-  while True:
-    print >>detail, ''
-    print >>detail, '=== Cardinal Run ==='
-    print >>detail, 'arguments:', ','.join(['0x%016x' % x for x in cardinal_argument])
-    print >>detail, 'expected:', ','.join(['0x%016x' % x for x in cardinal_expected])
-    detail.flush()
-
-    program = RunCardinalSolver(problem, cardinal_argument, cardinal_expected)
-
-    logging.info('=== %s', program)
-    print >>detail, 'program:', program
-    detail.flush()
-
-    try:
-      example = api.Guess(problem.id, program)
-    except api.Solved:
-      logging.info('')
-      logging.info(u'*\u30fb\u309c\uff9f\uff65*:.\uff61. '
-                   u'SOLVED!'
-                   u' .\uff61.:*\uff65\u309c\uff9f\uff65*:')
-      logging.info('')
-      print >>detail, '=> success.'
-      detail.flush()
-      return
-    if example:
-      logging.info('rejected. argument=0x%016x, expected=0x%016x, actual=0x%016x',
-                   example.argument, example.expected, example.actual)
-      print >>detail, '=> rejected. argument=0x%016x, expected=0x%016x, actual=0x%016x' % (
-          example.argument, example.expected, example.actual)
-      detail.flush()
-      cardinal_argument.append(example.argument)
-      cardinal_expected.append(example.expected)
-    else:
-      logging.info('rejected, but could not get a counterexample.')
-      print >>detail, '=> rejected, but could not get a counterexample.'
-      detail.flush()
-      i, o = known_io_pairs.pop()
+  try:
+    cardinal_argument = []
+    cardinal_expected = []
+    for i, o in random.sample(random_io_pairs, FLAGS.initial_arguments):
       cardinal_argument.append(i)
       cardinal_expected.append(o)
 
+    while True:
+      program = RunCardinalSolver(
+          problem, cardinal_argument, cardinal_expected, detail, None)
+      example = Guess(problem, program, detail)
+      if example:
+        cardinal_argument.append(example.argument)
+        cardinal_expected.append(example.expected)
+      else:
+        i, o = known_io_pairs.pop()
+        cardinal_argument.append(i)
+        cardinal_expected.append(o)
+
+  except api.Solved:
+    logging.info('')
+    logging.info(u'*\u30fb\u309c\uff9f\uff65*:.\uff61. '
+                 u'SOLVED!'
+                 u' .\uff61.:*\uff65\u309c\uff9f\uff65*:')
+    logging.info('')
+    print >>detail, '=> success.'
+    detail.flush()
+    return
 
 
 def main():
