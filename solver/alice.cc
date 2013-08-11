@@ -704,9 +704,12 @@ int main(int argc, char* argv[]) {
       std::vector<uint64_t> expecteds2 = expecteds;
       expecteds2.insert(expecteds2.end(), refinement_expecteds.begin(), refinement_expecteds.end());
 
-      bool answer_found = false;
+      bool should_quit = false;
+      // time_t x = time(NULL);
+      // int count = 0;
       for (auto& body_list : ListFoldBody(kListBodyMax)) {
         for (auto& body : body_list) {
+          // ++count;
           bool mismatch = false;
           for (size_t i = 0; i < arguments2.size(); ++i) {
             if (expecteds2[i] != FoldOp()(arguments2[i], arguments2[i], 0, *body)) {
@@ -715,16 +718,24 @@ int main(int argc, char* argv[]) {
             }
           }
           if (!mismatch) {
-            answer_found = true;
+            should_quit = true;
             std::cout << *FoldExpr::CreateTFold(body) << std::endl;
             break;
           }
+          // if ((count & 0x3FF) == 0) {
+          //   time_t y = time(NULL);
+          //   if (y - x > timeout_sec) {
+          //     should_quit = true;
+          //     std::cout << std::endl;
+          //     break;
+          //   }
+          // }
         }
-        if (answer_found) {
+        if (should_quit) {
           break;
         }
       }
-      if (answer_found) continue;
+      if (should_quit) continue;
 
       // Fallback to the normal search with FOLD operation.
       op_type_set = (op_type_set & ~OpType::TFOLD) | OpType::FOLD;
