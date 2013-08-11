@@ -19,6 +19,8 @@ from util import stdlog
 
 FLAGS = gflags.FLAGS
 
+BAILOUT_FILE = os.path.join(os.path.dirname(__file__), os.pardir, 'BAILOUT')
+
 gflags.DEFINE_string(
     'cardinal_solver', None,
     'Path to cardinal solver binary.')
@@ -96,8 +98,14 @@ def main():
   problems = frontend_util.GetProblemsByFlags()
 
   for index, problem in enumerate(problems):
+    if os.path.exists(BAILOUT_FILE):
+      logging.info('')
+      logging.info('Bailed out.')
+      sys.exit(0)
     logging.info('******** PROBLEM %d/%d: %r ********',
                  index + 1, len(problems), problem)
+    logging.info('Flag to recover: --problem_id=%s --size=%d --operators=%s',
+                 problem.id, problem.size, ','.join(problem.operators))
     Solve(problem)
 
 

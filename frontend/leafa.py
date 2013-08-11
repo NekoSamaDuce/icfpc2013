@@ -154,6 +154,8 @@ def main():
 
     logging.info('******** PROBLEM %d/%d: %r ********',
                  index + 1, len(problems), problem)
+    logging.info('Flag to recover: --problem_id=%s --size=%d --operators=%s',
+                 problem.id, problem.size, ','.join(problem.operators))
 
     arguments, clusters = RunClusterSolver(problem)
 
