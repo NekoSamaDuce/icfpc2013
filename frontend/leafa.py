@@ -19,6 +19,8 @@ from util import stdlog
 
 FLAGS = gflags.FLAGS
 
+BAILOUT_FILE = os.path.join(os.path.dirname(__file__), os.pardir, 'BAILOUT')
+
 gflags.DEFINE_string(
     'cluster_solver', None,
     'Path to cluster solver binary.')
@@ -145,6 +147,11 @@ def main():
   problems = frontend_util.GetProblemsByFlags()
 
   for index, problem in enumerate(problems):
+    if os.path.exists(BAILOUT_FILE):
+      logging.info('')
+      logging.info('Bailed out.')
+      sys.exit(0)
+
     logging.info('******** PROBLEM %d/%d: %r ********',
                  index + 1, len(problems), problem)
 
