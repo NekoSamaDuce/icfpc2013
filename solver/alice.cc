@@ -698,6 +698,38 @@ int main(int argc, char* argv[]) {
     CHECK(std::getline(std::cin, line));
     std::srand(strtoull(line.c_str(), NULL, 0));
 
+    if (op_type_set & OpType::TFOLD) {
+      std::vector<uint64_t> arguments2 = arguments;
+      arguments2.insert(arguments2.end(), refinement_arguments.begin(), refinement_arguments.end());
+      std::vector<uint64_t> expecteds2 = expecteds;
+      expecteds2.insert(expecteds2.end(), refinement_expecteds.begin(), refinement_expecteds.end());
+
+      bool answer_found = false;
+      for (auto& body_list : ListFoldBody(kListBodyMax)) {
+        for (auto& body : body_list) {
+          bool mismatch = false;
+          for (size_t i = 0; i < arguments2.size(); ++i) {
+            if (expecteds2[i] != FoldOp()(arguments2[i], arguments2[i], 0, *body)) {
+              mismatch = true;
+              break;
+            }
+          }
+          if (!mismatch) {
+            answer_found = true;
+            std::cout << *FoldExpr::CreateTFold(body) << std::endl;
+            break;
+          }
+        }
+        if (answer_found) {
+          break;
+        }
+      }
+      if (answer_found) continue;
+
+      // Fallback to the normal search with FOLD operation.
+      op_type_set = (op_type_set & ~OpType::TFOLD) | OpType::FOLD;
+    }
+
     if (!refinement_arguments.empty()) {
       std::vector<uint64_t> condition_arguments;
       std::vector<uint64_t> condition_expecteds;
