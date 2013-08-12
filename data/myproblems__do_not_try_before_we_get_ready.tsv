@@ -1646,7 +1646,7 @@
 BQ6HDoPJGUN0vCBJONdI8xyN	39	bonus,and,if0,not,or,plus,shl1,shr1,shr16,xor
 #SUCCESS:BZrL07Pn6221hdkzVLiftGgi	39	bonus,and,if0,not,plus,shl1,shr1,shr16,shr4,xor
 #FAILED:DMdHXVlBRd8C1Kah8eZAOO1k	39	bonus,and,if0,or,plus,shl1,shr1,shr16,xor
-DUpjkrbdpOzfouNSElFiKo0j	39	bonus,and,if0,or,plus,shl1,shr16,shr4,xor
+#FAILED:DUpjkrbdpOzfouNSElFiKo0j	39	bonus,and,if0,or,plus,shl1,shr16,shr4,xor
 E5TyzMAuBn3BZCwtCy7gMaee	39	bonus,and,if0,not,or,shl1,shr1,shr16,xor
 #SUCCESS:EWXgpdgxt4o9ABz6m2RDFt2y	39	bonus,and,if0,not,plus,shl1,shr16,shr4,xor
 GLbu9fGdXTkUl511D8psTT8X	39	bonus,and,if0,plus,shl1,shr1,shr16,shr4,xor
