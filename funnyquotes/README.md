@@ -1,27 +1,58 @@
 Funny quotes
 ============
-- @nya: PowerShell...! (Powershell に^ を喰われて git reset HEAD^ ができなかった @kinaba さんに
-- @phoenix [できましたー](https://twitter.com/phoenixstarhiro/status/364772371170750464/photo/1) (公式 twitter account の[発言](https://twitter.com/ICFPContest2013/status/363416341778145282) に釣られて)
-- @kinaba: nyaさんのバイナリ力が 0.5shinh と聞いて（やばそう）
-- @nya: @phoenix さんをトレーニングして5分で答えてもらったほうが良いのではないか
-- @nya: 目え覚めてきたーー
-- @phoenix: つらい、つらいよー @dmikurube: @phoenix をここまでつらいと言わしめるとか…… @phoenix: でもここ数日の仕事よりは楽ですね
-- @kinaba: ハイボールx3 + 生中x2 + サングリアx3 までは数えた
-- @nya: 1 2 MORE 4 DEBAN
-- @nya: lightningだけに初日にこそasunaを繰り出すべきだったかと一瞬思ったけどやっぱ最後ですよね
-- @nya: 世の中金ですぽよ
-- say: 「「ほうぐ」」(say コマンドに hoge 流したところ、突然ながれる音声)
-- @kinaba: わたしです AA(ry (誰かが仕込んだバグに対して)
-- @nya: 【定期ポスト】暗黙の型変換は爆発しろ！！
-- @nya: あううああ、/ partition があふれてるうう
-- @nya: アインクラッドにやさしい
-- @kinaba: わたしきなばさん、今xxx駅にいるの (会場の最寄り駅から)
-- @kinaba: @phoenix はS式が一瞬で読める人ですよね @phoenix: はい (会場ついた直後ディスプレイに移るbonus問題の一覧を見ながら)
-- @phoenix: 別に誰でも読めるでしょう
-- @nya: あーリーファなんていたー！ (早くもsolver忘れ始める)
-- @nya: りずべっととかいたなぁ。(同上)
-- @nya: 次はちゃんとききます（ｷﾘｯ (深夜眠い脳みそで説明を @phoenix に求めて、聞いた直後に発言)
-- @nya: テンション上がって来ましたーーー (眠気を通り越した(二回目))
-- @phoenix: アスナさんの無理やりっぷりがすごい (強引に解くsolver を見ながら)
-- すいっち！ (solver が asuna から kirito へと移行した際に)
-- @dmikurube: 金ですぽよの終焉 あきばぱねえ (コンテスト終了直後に)
+
+大会開始以前
+------------
+- @nya: 「PowerShell...!」
+    - (Powershell に^ を喰われて git reset HEAD^ ができなかった @kinaba さんに
+- @phoenix 「[できましたー](https://twitter.com/phoenixstarhiro/status/364772371170750464/photo/1)」
+    - (公式 twitter account の[発言](https://twitter.com/ICFPContest2013/status/363416341778145282) に釣られて)
+- @kinaba: 「nyaさんのバイナリ力が 0.5shinh と聞いて（やばそう）」
+
+1日目 (深夜まで)
+-----------------
+- @nya: 「@phoenix さんをトレーニングして5分で答えてもらったほうが良いのではないか」
+- @nya: 「目え覚めてきたーー」
+- @phoenix: 「つらい、つらいよー」 @dmikurube: 「@phoenix をここまでつらいと言わしめるとか……」 @phoenix: 「でもここ数日の仕事よりは楽ですね」
+- @kinaba: 「ハイボールx3 + 生中x2 + サングリアx3 までは数えた」
+- @nya: 「1 2 MORE 4 DEBAN」
+- @nya: 「lightningだけに初日にこそasunaを繰り出すべきだったかと一瞬思ったけどやっぱ最後ですよね」
+
+2日目 (深夜まで)
+-----------------
+- @nya: 「世の中金ですぽよ」
+    - (以下繰り返し)
+- say: 「「ほうぐ」」
+    - (say コマンドに hoge 流したところ、突然ながれる音声)
+- @kinaba: 「わたしです AA(ry」
+    - (誰かが仕込んだバグに対して)
+- @nya: 「【定期ポスト】暗黙の型変換は爆発しろ！！」
+
+3日目 (大会終了まで)
+--------------------
+- @nya: 「あううああ、/ partition があふれてるうう」
+- @nya: 「アインクラッドにやさしい」
+- @kinaba: 「わたしきなばさん、今○○○駅にいるの」
+    - (会場の最寄り駅から)
+- @kinaba: 「@phoenix はS式が一瞬で読める人ですよね」 @phoenix: 「はい」
+    - (会場ついた直後ディスプレイに移るbonus問題の一覧を見ながら)
+- @phoenix: 「別に誰でも読めるでしょう」
+    - (上記発言の直後に)
+- @nya: 「あーリーファなんていたー！」
+    - (早くもsolver忘れ始める)
+- @nya: 「りずべっととかいたなぁ。」
+    - (同上)
+- @nya: 「次はちゃんとききます（ｷﾘｯ」
+    - (深夜眠い脳みそで説明を @phoenix に求めて、聞いた直後に発言)
+- @nya: 「テンション上がって来ましたーーー」
+    - (眠気を通り越した(二回目))
+- @phoenix: 「アスナさんの無理やりっぷりがすごい」
+    - (強引に解くsolver を見ながら)
+- すいっち！
+    - (solver が asuna から kirito へと移行した際に)
+
+大会終了後
+----------
+- @dmikurube: 「金ですぽよの終焉」
+- @dmikurube: 「あきばぱねえ」
+    - (いずれもコンテスト終了直後に)
